@@ -1,24 +1,34 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import './style.css';
 
 const mount=document.querySelector('#game');
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x91b9b0);
-scene.fog=new THREE.FogExp2(0x91b9b0,.018);
+scene.background=new THREE.Color(0x8daeb0);
+scene.fog=new THREE.FogExp2(0x8daeb0,.012);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,220);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.65));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;mount.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xc8e8ff,0x34432a,2.0));
-const sun=new THREE.DirectionalLight(0xffe0ad,3.0);sun.position.set(-25,45,20);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-55;sun.shadow.camera.right=55;sun.shadow.camera.top=55;sun.shadow.camera.bottom=-55;scene.add(sun);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;mount.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xd5eaff,0x263524,2.25));
+const sun=new THREE.DirectionalLight(0xffe5c2,3.4);sun.position.set(-25,45,20);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-55;sun.shadow.camera.right=55;sun.shadow.camera.top=55;sun.shadow.camera.bottom=-55;scene.add(sun);
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
-const groundMat=mat(0x526d3c),sandMat=mat(0xc5ae79),rockMat=mat(0x59645d),barkMat=mat(0x493526),leafMat=mat(0x244d35),leaf2=mat(0x376c3d);
+const groundMat=mat(0x526b3d),sandMat=mat(0xc5ae79),rockMat=mat(0x59645d),barkMat=mat(0x493526),leafMat=mat(0x244d35),leaf2=mat(0x376c3d);
 const ground=new THREE.Mesh(new THREE.CircleGeometry(49,64),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;scene.add(ground);
 const beach=new THREE.Mesh(new THREE.RingGeometry(40,49,64),sandMat);beach.rotation.x=-Math.PI/2;beach.position.y=-.26;scene.add(beach);
 const water=new THREE.Mesh(new THREE.CircleGeometry(75,64),new THREE.MeshStandardMaterial({color:0x246b78,roughness:.28,metalness:.15}));water.rotation.x=-Math.PI/2;water.position.y=-.8;scene.add(water);
 // Island ridges and scattered boulders
 for(let i=0;i<18;i++){const a=i/18*Math.PI*2,r=30+Math.random()*9;const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(3+Math.random()*4,1),rockMat);rock.position.set(Math.cos(a)*r,1.3,Math.sin(a)*r);rock.scale.y=.8;rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true;scene.add(rock)}
-// Forest, with a clear central path
-for(let i=0;i<145;i++){const a=Math.random()*Math.PI*2,r=9+Math.random()*31,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<5&&z>-19&&z<14)continue;const h=2.2+Math.random()*2.5;const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16,.28,h,7),barkMat);trunk.position.set(x,h/2-.2,z);trunk.castShadow=true;scene.add(trunk);const crown=new THREE.Mesh(new THREE.ConeGeometry(1.25+Math.random()*.6,h*.62,7),Math.random()>.5?leafMat:leaf2);crown.position.set(x,h*.95,z);crown.castShadow=true;scene.add(crown)}
+// Kenney Nature Kit models (CC0): real GLB trees, rocks, bushes and camp props
+const assetRoot='https://raw.githubusercontent.com/Hidencod/tge-assets/main/';
+const gltfLoader=new GLTFLoader();
+const modelCache=new Map();
+function loadModel(path){if(modelCache.has(path))return modelCache.get(path);const p=new Promise((resolve,reject)=>gltfLoader.load(assetRoot+path,g=>resolve(g.scene),undefined,reject));modelCache.set(path,p);return p}
+const treeAssets=['packs/nature-kit/tree-detailed.glb','packs/nature-kit/tree-oak.glb','packs/nature-kit/tree-palmdetailedtall.glb','packs/nature-kit/tree-default-dark.glb'];
+const rockAssets=['packs/nature-kit/rock-largea.glb','packs/nature-kit/rock-largec.glb','packs/nature-kit/rock-larged.glb'];
+async function addNatureModel(path,x,z,scale=4){try{const model=(await loadModel(path)).clone(true);model.position.set(x,0,z);model.scale.setScalar(scale);model.rotation.y=Math.random()*Math.PI*2;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});scene.add(model)}catch(e){console.warn('Nature model unavailable',path,e)}}
+for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*34,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<5&&z>-20&&z<14)continue;addNatureModel(treeAssets[i%treeAssets.length],x,z,3.5+Math.random()*1.8)}
+for(let i=0;i<42;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*35;addNatureModel(rockAssets[i%rockAssets.length],Math.cos(a)*r,Math.sin(a)*r,1.2+Math.random()*1.5)}
+for(let i=0;i<28;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*28;addNatureModel('packs/nature-kit/plant-bushdetailed.glb',Math.cos(a)*r,Math.sin(a)*r,2.5+Math.random()*1.5)}
 // Ancient research outpost
 const base=new THREE.Mesh(new THREE.BoxGeometry(10,3.2,7),mat(0x68736e));base.position.set(17,1.3,-17);base.castShadow=true;base.receiveShadow=true;scene.add(base);
 const roof=new THREE.Mesh(new THREE.BoxGeometry(10.8,.45,7.8),mat(0x263d40));roof.position.set(17,3.1,-17);scene.add(roof);
@@ -28,6 +38,8 @@ const player=new THREE.Group();scene.add(player);player.position.set(0,0,17);
 const body=new THREE.Mesh(new THREE.CapsuleGeometry(.48,.9,4,8),mat(0x314e59));body.position.y=1.05;body.castShadow=true;player.add(body);
 const head=new THREE.Mesh(new THREE.SphereGeometry(.34,12,10),mat(0xc78e67));head.position.y=1.85;head.castShadow=true;player.add(head);
 const pack=new THREE.Mesh(new THREE.BoxGeometry(.55,.7,.28),mat(0x9b7545));pack.position.set(0,1.12,.48);player.add(pack);
+const playerPlaceholder=[body,head,pack];
+loadModel('packs/mini-characters/character-male-c.glb').then(model=>{playerPlaceholder.forEach(o=>o.visible=false);const hero=model.clone(true);hero.scale.setScalar(1.8);hero.position.y=0;hero.rotation.y=Math.PI;hero.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});player.add(hero)}).catch(e=>console.warn('Hero model unavailable',e));
 const crystalMat=new THREE.MeshStandardMaterial({color:0x7fffe5,emissive:0x18bca4,emissiveIntensity:2,metalness:.3,roughness:.2});
 const crystals=[];for(const [x,z] of [[-18,2],[19,12],[18,-28]]){const g=new THREE.Group();const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.8),crystalMat);gem.position.y=1.25;g.add(gem);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.15,.045,8,24),new THREE.MeshBasicMaterial({color:0x7fffe5}));ring.rotation.x=Math.PI/2;ring.position.y=1.25;g.add(ring);g.position.set(x,0,z);scene.add(g);crystals.push({group:g,got:false})}
 // Creature stalks the player
@@ -37,6 +49,8 @@ const torso=new THREE.Mesh(new CapsuleGeometryFallback(.62,1.0),monsterMat);tors
 for(const x of [-.23,.23]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.095,8,8),eyeMat);eye.position.set(x,1.75,-.43);enemy.add(eye)}
 for(let i=0;i<4;i++){const claw=new THREE.Mesh(new THREE.ConeGeometry(.12,.65,6),monsterMat);claw.position.set(i%2?-.45:.45,.65,i<2?-.35:.35);claw.rotation.z=Math.PI;enemy.add(claw)}
 function CapsuleGeometryFallback(r,l){return new THREE.CapsuleGeometry(r,l,4,8)}
+const monsterPlaceholder=[torso,...enemy.children.filter(o=>o!==torso)];
+loadModel('packs/space-kit/alien.glb').then(model=>{monsterPlaceholder.forEach(o=>o.visible=false);const creature=model.clone(true);creature.scale.setScalar(3.2);creature.position.y=0;creature.rotation.y=Math.PI;creature.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});enemy.add(creature)}).catch(e=>console.warn('Creature model unavailable',e));
 // Extraction beacon
 const beacon=new THREE.Group();beacon.position.set(0,0,-34);scene.add(beacon);const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,3,8),mat(0x566c67));pillar.position.y=1.5;beacon.add(pillar);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,8,12),new THREE.MeshBasicMaterial({color:0x8affc7,transparent:true,opacity:.38}));beam.position.y=5;beacon.add(beam);const beaconLight=new THREE.PointLight(0x5dffb1,0,20);beaconLight.position.y=3;beacon.add(beaconLight);
 let health=100,found=0,started=false,ended=false,lastHit=0;const keys={x:0,y:0};let running=false;
