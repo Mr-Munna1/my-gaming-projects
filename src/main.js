@@ -128,7 +128,8 @@ const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(-14,0,-15);
 const monsterMat=mat(0x27332b),eyeMat=new THREE.MeshStandardMaterial({color:0xff5b36,emissive:0xff2200,emissiveIntensity:2});
 const torso=new THREE.Mesh(new CapsuleGeometryFallback(.62,1.0),monsterMat);torso.position.y=1.15;enemy.add(torso);
 for(const x of [-.23,.23]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.095,8,8),eyeMat);eye.position.set(x,1.75,-.43);enemy.add(eye)}
-for(let i=0;i<4;i++){const claw=new THREE.Mesh(new THREE.ConeGeometry(.12,.65,6),monsterMat);claw.position.set(i%2?-.45:.45,.65,i<2?-.35:.35);claw.rotation.z=Math.PI;enemy.add(claw)}
+const monsterClaws=[];
+for(let i=0;i<4;i++){const claw=new THREE.Mesh(new THREE.ConeGeometry(.12,.65,6),monsterMat);claw.position.set(i%2?-.45:.45,.65,i<2?-.35:.35);claw.rotation.z=Math.PI;enemy.add(claw);monsterClaws.push(claw)}
 function CapsuleGeometryFallback(r,l){return new THREE.CapsuleGeometry(r,l,4,8)}
 const monsterPlaceholder=[torso,...enemy.children.filter(o=>o!==torso)];
 loadModel('packs/space-kit/alien.glb').then(model=>{monsterPlaceholder.forEach(o=>o.visible=false);const creature=model.clone(true);creature.scale.setScalar(3.2);creature.position.y=0;creature.rotation.y=Math.PI;creature.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});enemy.add(creature)}).catch(e=>console.warn('Creature model unavailable',e));
@@ -173,6 +174,12 @@ if(dist<alertRange){
   if(dist<12&&elapsed-lastGrowl>5){sound(52,.42,'sawtooth',.035);lastGrowl=elapsed}if(dist<8&&!monsterNearWarned){toast('WARNING: The creature is close!');monsterNearWarned=true}if(dist>11)monsterNearWarned=false
 }
 enemy.position.y=.06+Math.sin(elapsed*5.5)*.09;
+// Creature combat animation: hunch, swipe its claws, and flash its eyes during an attack
+const attacking=dist<5.2;
+torso.rotation.x=attacking?-.22+Math.sin(elapsed*15)*.12:Math.sin(elapsed*3)*.025;
+torso.rotation.z=attacking?Math.sin(elapsed*11)*.09:Math.sin(elapsed*2.5)*.018;
+monsterClaws.forEach((claw,i)=>{const side=i%2===0?1:-1;claw.rotation.x=attacking?Math.sin(elapsed*13+i*Math.PI)*.62:Math.sin(elapsed*2+i)*.045;claw.rotation.z=Math.PI+(attacking?side*(.28+Math.max(0,Math.sin(elapsed*13+i))* .35):side*.04)});
+eyeMat.emissiveIntensity=attacking?2.8+Math.max(0,Math.sin(elapsed*14))*2.2:1.7+Math.sin(elapsed*2)*.3;
 enemy.rotation.z=dist<alertRange?Math.sin(elapsed*8)*.035:0;if(dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-12);$('hud').classList.remove('damageFlash');void $('hud').offsetWidth;$('hud').classList.add('damageFlash');lastHit=elapsed;sound(95,.3,'sawtooth',.09);updateHud();toast('The creature hit you!');if(health<=35&&!lowHealthWarned){toast('LOW HEALTH! Find a green medkit!');lowHealthWarned=true}if(health>35)lowHealthWarned=false;if(!health)finish(false)}
 chest.rotation.y+=dt*.12;
 caveLight.intensity=1.7+Math.sin(elapsed*2.4)*.35;
