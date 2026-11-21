@@ -10,13 +10,13 @@
 <body>
   <div id="game"></div>
   <div id="hud">
-    <header class="topbar"><div class="brand">SHADOW <span>ISLAND</span></div><div class="stats"><div class="stat">♥ <b id="health">100</b></div><div class="stat">◆ <b id="crystals">0/3</b></div></div></header>
+    <header class="topbar"><div class="brand">SHADOW <span>ISLAND</span></div><div class="stats"><div class="stat">♥ <b id="health">100</b></div><div class="stat">◆ <b id="crystals">0/3</b></div><div class="stat">AMMO <b id="ammo">12/12</b></div></div></header>
     <div id="bossHud" class="bossHud hidden"><div class="bossTitle"><span>ISLAND GUARDIAN</span><b id="bossHealthText">100%</b></div><div class="bossBar"><i id="bossHealthFill"></i></div></div>
     <div class="mission"><small>MISSION 01</small><strong id="objective">Find 3 energy crystals</strong><span id="hint">Explore the island. Stay alert.</span><span id="sideMission">SIDE MISSION: Find the hidden jungle treasure</span></div>
     <div id="toast">AARAV: Where is everyone?</div><canvas id="minimap" width="112" height="112" aria-label="Island radar"></canvas><div class="statusBars"><div><span>HEALTH</span><b class="bar"><i id="healthFillMini"></i></b></div><div><span>STAMINA</span><b class="bar"><i id="staminaFill"></i></b></div></div>
     <div class="controls">
       <div id="joystick" class="joystick"><div id="stick"></div></div>
-      <div class="actions"><button id="attack" aria-label="Attack with machete">HIT</button><button id="dodge" aria-label="Dodge">DODGE</button><button id="run" aria-label="Run">RUN</button><button id="interact" aria-label="Interact">USE</button></div>
+      <div class="actions"><button id="shoot" aria-label="Shoot pistol">SHOOT</button><button id="attack" aria-label="Attack with machete">HIT</button><button id="dodge" aria-label="Dodge">DODGE</button><button id="run" aria-label="Run">RUN</button><button id="interact" aria-label="Interact">USE</button></div>
     </div>
     <div id="startscreen" class="screen"><div class="panel"><p class="eyebrow">A SURVIVAL ADVENTURE</p><h1>SHADOW<br/><span>ISLAND</span></h1><p class="story">Your plane crashed on a forgotten island. Find the three energy crystals, avoid what hunts in the jungle, and reach the extraction beacon.</p><div class="howto">◉ LEFT JOYSTICK: MOVE<br/>◎ DRAG RIGHT SIDE: ROTATE CAMERA<br/>◆ RUN TO SPRINT · E / USE TO INTERACT<br/>COLLECT 3 CRYSTALS TO UNLOCK EXTRACTION</div><button id="start">ENTER THE ISLAND</button><small>BEST EXPERIENCE IN LANDSCAPE</small></div></div>
     <div id="endScreen" class="screen hidden"><div class="panel"><p class="eyebrow">SHADOW ISLAND</p><h1 id="endTitle">MISSION COMPLETE</h1><p id="endText">You escaped the island.</p><button id="restart">PLAY AGAIN</button></div></div>
