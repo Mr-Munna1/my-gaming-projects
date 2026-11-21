@@ -33,6 +33,52 @@ async function addNatureModel(path,x,z,scale=4){try{const model=(await loadModel
 for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*34,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<5&&z>-20&&z<14)continue;addNatureModel(treeAssets[i%treeAssets.length],x,z,3.5+Math.random()*1.8)}
 for(let i=0;i<42;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*35;addNatureModel(rockAssets[i%rockAssets.length],Math.cos(a)*r,Math.sin(a)*r,1.2+Math.random()*1.5)}
 for(let i=0;i<28;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*28;addNatureModel('packs/nature-kit/plant-bushdetailed.glb',Math.cos(a)*r,Math.sin(a)*r,2.5+Math.random()*1.5)}
+// Dense jungle floor, winding dirt trail, fallen logs and glowing fireflies
+const trailCurve=new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0,-.17,17),new THREE.Vector3(-7,-.17,9),
+  new THREE.Vector3(-12,-.17,0),new THREE.Vector3(-8,-.17,-9),
+  new THREE.Vector3(3,-.17,-16),new THREE.Vector3(1,-.17,-26),
+  new THREE.Vector3(0,-.17,-34)
+]);
+const trailMat=mat(0x765b37);
+const trailGeo=new THREE.CircleGeometry(1.65,10);
+for(let i=0;i<=90;i++){
+  const p=trailCurve.getPoint(i/90);
+  const patch=new THREE.Mesh(trailGeo,trailMat);
+  patch.rotation.x=-Math.PI/2;patch.position.set(p.x,-.145,p.z);
+  patch.scale.set(1.05,1.35,1);scene.add(patch);
+}
+const fernMat=mat(0x245b35),fernTipMat=mat(0x4d8a43),logMat=mat(0x493323);
+for(let i=0;i<54;i++){
+  const a=Math.random()*Math.PI*2,r=9+Math.random()*29,x=Math.cos(a)*r,z=Math.sin(a)*r;
+  if(Math.abs(x)<4&&z>-20&&z<19)continue;
+  const fern=new THREE.Group();fern.position.set(x,0,z);
+  const count=5+Math.floor(Math.random()*3);
+  for(let j=0;j<count;j++){
+    const angle=j/count*Math.PI*2;
+    const leaf=new THREE.Mesh(new THREE.ConeGeometry(.18,1.5,5),j%2?fernMat:fernTipMat);
+    leaf.position.set(Math.cos(angle)*.38,.62,Math.sin(angle)*.38);
+    leaf.rotation.z=-Math.cos(angle)*.72;leaf.rotation.x=Math.sin(angle)*.72;
+    fern.add(leaf);
+  }
+  const center=new THREE.Mesh(new THREE.CylinderGeometry(.045,.07,.7,5),fernMat);
+  center.position.y=.35;fern.add(center);scene.add(fern);
+}
+for(const [x,z,rot] of [[-22,-10,.4],[24,4,1.1],[-30,18,-.6],[11,-29,.8]]){
+  const log=new THREE.Mesh(new THREE.CylinderGeometry(.42,.5,5.5,8),logMat);
+  log.position.set(x,.35,z);log.rotation.set(.08,rot,Math.PI/2);log.castShadow=true;scene.add(log);
+  for(let k=-1;k<=1;k+=2){
+    const cut=new THREE.Mesh(new THREE.CircleGeometry(.39,8),mat(0x9a754b));
+    cut.position.set(x+k*2.72,.35,z);cut.rotation.y=Math.PI/2;scene.add(cut);
+  }
+}
+const fireflies=[];
+const flyMat=new THREE.MeshBasicMaterial({color:0xbaff72});
+for(let i=0;i<26;i++){
+  const fly=new THREE.Mesh(new THREE.SphereGeometry(.055,6,6),flyMat);
+  fly.position.set((Math.random()-.5)*54,1.2+Math.random()*4,(Math.random()-.5)*54);
+  scene.add(fly);fireflies.push({mesh:fly,phase:Math.random()*Math.PI*2});
+}
 // Ancient research outpost
 const base=new THREE.Mesh(new THREE.BoxGeometry(10,3.2,7),mat(0x68736e));base.position.set(17,1.3,-17);base.castShadow=true;base.receiveShadow=true;scene.add(base);
 const roof=new THREE.Mesh(new THREE.BoxGeometry(10.8,.45,7.8),mat(0x263d40));roof.position.set(17,3.1,-17);scene.add(roof);
@@ -112,6 +158,6 @@ beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(bea
 }
 const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
 const desired=player.position.clone().add(rotatedOffset);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(player.position.x,1.1,player.position.z);
-drawRadar();renderer.render(scene,camera)}
+for(const f of fireflies){f.mesh.position.y+=Math.sin(elapsed*2.1+f.phase)*.0018;f.mesh.position.x+=Math.cos(elapsed*.7+f.phase)*.0025;f.mesh.material.opacity=1;}drawRadar();renderer.render(scene,camera)}
 updateHud();animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.65))});
