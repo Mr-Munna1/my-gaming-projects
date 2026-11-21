@@ -46,6 +46,17 @@ const playerPlaceholder=[body,head,pack];
 loadModel('packs/mini-characters/character-male-c.glb').then(model=>{playerPlaceholder.forEach(o=>o.visible=false);const hero=model.clone(true);hero.scale.setScalar(1.8);hero.position.y=0;hero.rotation.y=Math.PI;hero.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});player.add(hero)}).catch(e=>console.warn('Hero model unavailable',e));
 const crystalMat=new THREE.MeshStandardMaterial({color:0x7fffe5,emissive:0x18bca4,emissiveIntensity:2,metalness:.3,roughness:.2});
 const crystals=[];for(const [x,z] of [[-18,2],[19,12],[18,-28]]){const g=new THREE.Group();const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.8),crystalMat);gem.position.y=1.25;g.add(gem);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.15,.045,8,24),new THREE.MeshBasicMaterial({color:0x7fffe5}));ring.rotation.x=Math.PI/2;ring.position.y=1.25;g.add(ring);g.position.set(x,0,z);scene.add(g);crystals.push({group:g,got:false})}
+// Emergency medkits: restore health when collected in the jungle
+const medkits=[];
+for(const [x,z] of [[-28,-13],[8,27]]){
+  const kit=new THREE.Group();
+  const box=new THREE.Mesh(new THREE.BoxGeometry(.85,.42,.65),mat(0xd8ded3));
+  box.position.y=.48;kit.add(box);
+  const crossMat=new THREE.MeshStandardMaterial({color:0x42df8a,emissive:0x126b3c,emissiveIntensity:1.1});
+  const barA=new THREE.Mesh(new THREE.BoxGeometry(.16,.5,.08),crossMat);barA.position.set(0,.72,-.34);kit.add(barA);
+  const barB=new THREE.Mesh(new THREE.BoxGeometry(.42,.16,.08),crossMat);barB.position.set(0,.72,-.34);kit.add(barB);
+  kit.position.set(x,0,z);scene.add(kit);medkits.push({group:kit,used:false});
+}
 // Creature stalks the player
 const enemy=new THREE.Group();scene.add(enemy);enemy.position.set(-14,0,-15);
 const monsterMat=mat(0x27332b),eyeMat=new THREE.MeshStandardMaterial({color:0xff5b36,emissive:0xff2200,emissiveIntensity:2});
@@ -84,8 +95,8 @@ const clock=new THREE.Clock();const cameraOffset=new THREE.Vector3(0,7.5,13);let
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;const night=(Math.sin(elapsed*.018)+1)*.5;sun.intensity=2.0+night*1.5;scene.fog.color.setHex(night>.72?0x263747:0x8daeb0);scene.background.copy(scene.fog.color);$('staminaFill').style.width=stamina+'%';if(started&&!ended){const len=Math.hypot(keys.x,keys.y);if(len>.05){const sprinting=running&&stamina>1;const speed=sprinting?10:6;if(sprinting)stamina=Math.max(0,stamina-25*dt);else stamina=Math.min(100,stamina+14*dt);if(elapsed-lastFootstep>(sprinting?.28:.48)){sound(sprinting?115:82,.055,'triangle',.018);lastFootstep=elapsed;}
 const move=new THREE.Vector3(keys.x/Math.max(1,len),0,keys.y/Math.max(1,len)).applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
 const dx=move.x,dz=move.z;player.position.x=THREE.MathUtils.clamp(player.position.x+dx*speed*dt,-43,43);player.position.z=THREE.MathUtils.clamp(player.position.z+dz*speed*dt,-43,43);player.rotation.y=Math.atan2(dx,dz);body.position.y=1.05+Math.sin(elapsed*12)*(running?.08:.035)}
-for(const c of crystals){c.group.rotation.y+=dt*1.2;c.group.position.y=Math.sin(elapsed*2+c.group.position.x)*.12;if(!c.got&&player.position.distanceTo(c.group.position)<2.2){c.got=true;found++;scene.remove(c.group);sound(880,.22,'sine',.07);setTimeout(()=>sound(1180,.28,'sine',.05),90);updateHud();toast('Energy crystal secured!')}}
-const toPlayer=new THREE.Vector3().subVectors(player.position,enemy.position);const dist=toPlayer.length();if(dist<22){toPlayer.normalize();enemy.position.addScaledVector(toPlayer,dt*(dist<3?1.4:2.5));enemy.lookAt(player.position.x,0,player.position.z);if(dist<12&&elapsed-lastGrowl>5){sound(52,.42,'sawtooth',.035);lastGrowl=elapsed}}if(dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-12);lastHit=elapsed;sound(95,.3,'sawtooth',.09);updateHud();toast('The creature hit you!');if(!health)finish(false)}
+for(const kit of medkits){if(!kit.used){kit.group.rotation.y+=dt*.7;kit.group.position.y=.08+Math.sin(elapsed*2.2+kit.group.position.x)*.08;if(player.position.distanceTo(kit.group.position)<2.2){kit.used=true;health=Math.min(100,health+35);scene.remove(kit.group);sound(660,.2,'sine',.06);updateHud();toast('Medkit collected: health restored!')}}}\nfor(const c of crystals){c.group.rotation.y+=dt*1.2;c.group.position.y=Math.sin(elapsed*2+c.group.position.x)*.12;if(!c.got&&player.position.distanceTo(c.group.position)<2.2){c.got=true;found++;scene.remove(c.group);sound(880,.22,'sine',.07);setTimeout(()=>sound(1180,.28,'sine',.05),90);updateHud();toast('Energy crystal secured!')}}
+const toPlayer=new THREE.Vector3().subVectors(player.position,enemy.position);const dist=toPlayer.length();if(dist<22){toPlayer.normalize();enemy.position.addScaledVector(toPlayer,dt*(dist<3?1.4:2.5));enemy.lookAt(player.position.x,0,player.position.z);if(dist<12&&elapsed-lastGrowl>5){sound(52,.42,'sawtooth',.035);lastGrowl=elapsed}}if(dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-12);$('hud').classList.remove('damageFlash');void $('hud').offsetWidth;$('hud').classList.add('damageFlash');lastHit=elapsed;sound(95,.3,'sawtooth',.09);updateHud();toast('The creature hit you!');if(!health)finish(false)}
 beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(beacon.position)<4){beaconLight.intensity=5;if(!beaconPrompted){toast('Extraction beacon: press USE');beaconPrompted=true}}else{beaconPrompted=false}
 }
 const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
