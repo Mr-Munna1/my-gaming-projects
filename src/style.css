@@ -3,3 +3,5 @@
 #minimap{position:absolute;right:16px;top:145px;width:104px;height:104px;border-radius:50%;border:1px solid #b8e6ad88;box-shadow:0 4px 18px #0008;opacity:.92;pointer-events:none}@media(max-height:520px){#minimap{width:76px;height:76px;top:118px;right:12px}.statusBars{top:72px}.mission{top:72px}}
 
 @keyframes damagePulse{0%{box-shadow:inset 0 0 0 0 #ff303055}35%{box-shadow:inset 0 0 90px 18px #ff303077}100%{box-shadow:inset 0 0 0 0 #ff303000}}#hud.damageFlash{animation:damagePulse .42s ease-out}
+
+.bossHud{position:absolute;top:calc(145px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(310px,62vw);padding:9px 12px;background:#160d0dd9;border:1px solid #ff735b88;border-radius:10px;box-shadow:0 4px 20px #0008}.bossTitle{display:flex;justify-content:space-between;gap:10px;font-size:9px;font-weight:900;letter-spacing:1.6px;color:#ff9b83;margin-bottom:6px}.bossTitle b{color:#fff}.bossBar{height:8px;background:#321b1b;border-radius:8px;overflow:hidden}.bossBar i{display:block;width:100%;height:100%;background:linear-gradient(90deg,#a51f25,#ff785c);transition:width .25s}
