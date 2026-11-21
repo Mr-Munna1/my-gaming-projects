@@ -57,7 +57,12 @@ const monsterPlaceholder=[torso,...enemy.children.filter(o=>o!==torso)];
 loadModel('packs/space-kit/alien.glb').then(model=>{monsterPlaceholder.forEach(o=>o.visible=false);const creature=model.clone(true);creature.scale.setScalar(3.2);creature.position.y=0;creature.rotation.y=Math.PI;creature.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});enemy.add(creature)}).catch(e=>console.warn('Creature model unavailable',e));
 // Extraction beacon
 const beacon=new THREE.Group();beacon.position.set(0,0,-34);scene.add(beacon);const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,3,8),mat(0x566c67));pillar.position.y=1.5;beacon.add(pillar);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,8,12),new THREE.MeshBasicMaterial({color:0x8affc7,transparent:true,opacity:.38}));beam.position.y=5;beacon.add(beam);const beaconLight=new THREE.PointLight(0x5dffb1,0,20);beaconLight.position.y=3;beacon.add(beaconLight);
-let health=100,found=0,started=false,ended=false,lastHit=0;const keys={x:0,y:0};let running=false;
+let health=100,found=0,started=false,ended=false,lastHit=0,stamina=100;
+const keys={x:0,y:0};let running=false,cameraYaw=0,cameraDrag=null;
+renderer.domElement.addEventListener('pointerdown',e=>{cameraDrag={id:e.pointerId,x:e.clientX};renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(cameraDrag&&cameraDrag.id===e.pointerId){cameraYaw-=(e.clientX-cameraDrag.x)*.006;cameraDrag.x=e.clientX}});
+renderer.domElement.addEventListener('pointerup',e=>{if(cameraDrag?.id===e.pointerId)cameraDrag=null});
+renderer.domElement.addEventListener('pointercancel',()=>cameraDrag=null);
 const $=id=>document.getElementById(id);const toast=(s)=>{$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),2200)};
 function updateHud(){$('health').textContent=health;$('healthFill').style.width=health+'%';$('healthFillMini').style.width=health+'%';$('staminaFill').style.width=stamina+'%';$('crystals').textContent=found+'/3';$('objective').textContent=found<3?'Find '+(3-found)+' energy crystal'+(found===2?'':'s'):'Reach the extraction beacon';$('hint').textContent=found<3?'The jungle is not empty…':'The beacon is active. Reach the coast.'}
 $('start').onclick=()=>{started=true;$('startscreen').classList.add('hidden');toast('AARAV: I need to find the others…')};
@@ -70,12 +75,15 @@ const joy=$('joystick'),stick=$('stick');let joyId=null;function joyMove(e){cons
 joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(joyId);joyMove(e)});joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)joyMove(e)});function joyEnd(){joyId=null;keys.x=keys.y=0;stick.style.transform='translate(0,0)'}joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
 addEventListener('keydown',e=>{if(e.key==='w'||e.key==='ArrowUp')keys.y=-1;if(e.key==='s'||e.key==='ArrowDown')keys.y=1;if(e.key==='a'||e.key==='ArrowLeft')keys.x=-1;if(e.key==='d'||e.key==='ArrowRight')keys.x=1;if(e.shiftKey)running=true});addEventListener('keyup',e=>{if(['w','s','ArrowUp','ArrowDown'].includes(e.key))keys.y=0;if(['a','d','ArrowLeft','ArrowRight'].includes(e.key))keys.x=0;if(e.key==='Shift')running=false});
 const clock=new THREE.Clock();const cameraOffset=new THREE.Vector3(0,7.5,13);let elapsed=0;
-function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;if(started&&!ended){const len=Math.hypot(keys.x,keys.y);if(len>.05){const speed=running?10:6;const dx=keys.x/Math.max(1,len),dz=keys.y/Math.max(1,len);player.position.x=THREE.MathUtils.clamp(player.position.x+dx*speed*dt,-43,43);player.position.z=THREE.MathUtils.clamp(player.position.z+dz*speed*dt,-43,43);player.rotation.y=Math.atan2(dx,dz);body.position.y=1.05+Math.sin(elapsed*12)*(running?.08:.035)}
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;if(started&&!ended){const len=Math.hypot(keys.x,keys.y);if(len>.05){const sprinting=running&&stamina>1;const speed=sprinting?10:6;if(sprinting)stamina=Math.max(0,stamina-25*dt);else stamina=Math.min(100,stamina+14*dt);
+const move=new THREE.Vector3(keys.x/Math.max(1,len),0,keys.y/Math.max(1,len)).applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
+const dx=move.x,dz=move.z;player.position.x=THREE.MathUtils.clamp(player.position.x+dx*speed*dt,-43,43);player.position.z=THREE.MathUtils.clamp(player.position.z+dz*speed*dt,-43,43);player.rotation.y=Math.atan2(dx,dz);body.position.y=1.05+Math.sin(elapsed*12)*(running?.08:.035)}
 for(const c of crystals){c.group.rotation.y+=dt*1.2;c.group.position.y=Math.sin(elapsed*2+c.group.position.x)*.12;if(!c.got&&player.position.distanceTo(c.group.position)<2.2){c.got=true;found++;scene.remove(c.group);updateHud();toast('Energy crystal secured!')}}
 const toPlayer=new THREE.Vector3().subVectors(player.position,enemy.position);const dist=toPlayer.length();if(dist<22){toPlayer.normalize();enemy.position.addScaledVector(toPlayer,dt*(dist<3?1.4:2.5));enemy.lookAt(player.position.x,0,player.position.z)}if(dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-12);lastHit=elapsed;updateHud();toast('The creature hit you!');if(!health)finish(false)}
 beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(beacon.position)<4)toast('Extraction beacon: press USE');
 }
-const desired=player.position.clone().add(cameraOffset);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(player.position.x,1.1,player.position.z-2);
+const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
+const desired=player.position.clone().add(rotatedOffset);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(player.position.x,1.1,player.position.z);
 renderer.render(scene,camera)}
 updateHud();animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.65))});
