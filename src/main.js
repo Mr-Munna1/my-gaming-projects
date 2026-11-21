@@ -92,6 +92,10 @@ const chestLid=new THREE.Mesh(new THREE.BoxGeometry(1.68,.35,1.1),goldMat);chest
 const chestLock=new THREE.Mesh(new THREE.BoxGeometry(.22,.32,.08),goldMat);chestLock.position.set(0,.82,-.57);chest.add(chestLock);
 const treasureGlow=new THREE.PointLight(0xffbd45,1.5,7);treasureGlow.position.set(0,1.5,0);chest.add(treasureGlow);
 let treasureFound=false;
+let flareAmmo=0;
+let bossHealth=100;
+let bossAwakened=false;
+let bossDefeated=false;
 let caveTrapTriggered=false;
 const caveLight=new THREE.PointLight(0x55b9a5,2.2,15);caveLight.position.set(-31,2.4,-22.5);scene.add(caveLight);
 const trapGroup=new THREE.Group();trapGroup.position.set(-31,0,-22.2);scene.add(trapGroup);
@@ -146,11 +150,11 @@ let audioCtx=null,ambientOsc=null,lastFootstep=0,lastGrowl=0;
 function sound(freq=440,duration=.12,type='sine',volume=.045){try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);g.gain.setValueAtTime(volume,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
 function startAmbience(){try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();if(ambientOsc)return;ambientOsc=audioCtx.createOscillator();const gain=audioCtx.createGain();ambientOsc.type='sine';ambientOsc.frequency.value=58;gain.gain.value=.012;ambientOsc.connect(gain);gain.connect(audioCtx.destination);ambientOsc.start()}catch(e){}}
 const toast=(s)=>{$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),2200)};
-function updateHud(){$('health').textContent=health;const fullHealth=$('healthFill');if(fullHealth)fullHealth.style.width=health+'%';$('healthFillMini').style.width=health+'%';$('staminaFill').style.width=stamina+'%';$('crystals').textContent=found+'/3';$('objective').textContent=found<3?'Find '+(3-found)+' energy crystal'+(found===2?'':'s'):'Reach the extraction beacon';$('hint').textContent=found<3?'The jungle is not empty…':'The beacon is active. Reach the coast.';const side=$('sideMission');if(side)side.textContent=treasureFound?'SIDE MISSION COMPLETE: Jungle treasure found':'SIDE MISSION: Find the hidden jungle treasure'}
+function updateHud(){$('health').textContent=health;const fullHealth=$('healthFill');if(fullHealth)fullHealth.style.width=health+'%';$('healthFillMini').style.width=health+'%';$('staminaFill').style.width=stamina+'%';$('crystals').textContent=found+'/3';$('objective').textContent=found<3?'Find '+(3-found)+' energy crystal'+(found===2?'':'s'):'Reach the extraction beacon';$('hint').textContent=found<3?'The jungle is not empty…':'The beacon is active. Reach the coast.';const side=$('sideMission');if(side)side.textContent=treasureFound?'SIDE MISSION COMPLETE: Treasure found · FLARES '+flareAmmo:'SIDE MISSION: Find the hidden jungle treasure';const bossHud=$('bossHud');if(bossHud){bossHud.classList.toggle('hidden',!bossAwakened||bossDefeated);$('bossHealthFill').style.width=bossHealth+'%';$('bossHealthText').textContent=Math.ceil(bossHealth)+'%'}}
 $('start').onclick=()=>{started=true;startAmbience();sound(520,.18,'triangle');$('startscreen').classList.add('hidden');toast('AARAV: I need to find the others…')};
 $('restart').onclick=()=>location.reload();
 $('run').addEventListener('pointerdown',()=>running=true);$('run').addEventListener('pointerup',()=>running=false);$('run').addEventListener('pointercancel',()=>running=false);
-$('interact').onclick=()=>{if(!treasureFound&&player.position.distanceTo(chest.position)<3.2){treasureFound=true;scene.remove(chest);sound(980,.3,'triangle',.08);updateHud();toast('SECRET FOUND! Ancient jungle treasure collected');return}if(found===3&&player.position.distanceTo(beacon.position)<5)finish(true);else if(!treasureFound&&player.position.distanceTo(chest.position)<7)toast('Move closer to the treasure chest and press USE');else toast(found===3?'Get closer to the extraction beacon':'Find the glowing crystals first')};
+$('interact').onclick=()=>{const enemyDistance=player.position.distanceTo(enemy.position);if(treasureFound&&flareAmmo>0&&enemyDistance<10&&!bossDefeated){flareAmmo--;bossHealth=Math.max(0,bossHealth-35);sound(240,.18,'sawtooth',.08);setTimeout(()=>sound(720,.22,'triangle',.07),80);enemy.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){o.material.emissive.setHex(0xff3b16);setTimeout(()=>o.material.emissive.setHex(0x000000),180)}});if(bossHealth===0){bossDefeated=true;scene.remove(enemy);toast('BOSS DEFEATED! The extraction route is safer now.')}else toast('FLARE HIT! Boss health: '+bossHealth+'%');updateHud();return}if(!treasureFound&&player.position.distanceTo(chest.position)<3.2){treasureFound=true;flareAmmo=3;scene.remove(chest);sound(980,.3,'triangle',.08);updateHud();toast('TREASURE FOUND! You got 3 emergency flares. Use them near the monster!');return}if(found===3&&player.position.distanceTo(beacon.position)<5&&(!bossAwakened||bossDefeated))finish(true);else if(!treasureFound&&player.position.distanceTo(chest.position)<7)toast('Move closer to the treasure chest and press USE');else if(found===3&&bossAwakened&&!bossDefeated)toast('Defeat the island guardian first! Find the cave treasure for flares.');else toast(found===3?'Get closer to the extraction beacon':'Find the glowing crystals first')};
 function finish(win){ended=true;sound(win?740:85,.55,win?'triangle':'sawtooth',.08);$('endTitle').textContent=win?'MISSION COMPLETE':'YOU WERE HUNTED';$('endText').textContent=win?'Aarav escaped… but something followed him off the island.':'The island has claimed another explorer. Try a different route.';$('endScreen').classList.remove('hidden')}
 // Touch joystick and keyboard
 const joy=$('joystick'),stick=$('stick');let joyId=null;function joyMove(e){const r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),len=Math.hypot(dx,dy),m=Math.min(38,len),a=Math.atan2(dy,dx);keys.x=Math.cos(a)*m/38;keys.y=Math.sin(a)*m/38;stick.style.transform='translate('+keys.x*28+'px,'+keys.y*28+'px)'}
@@ -165,8 +169,8 @@ const dx=move.x,dz=move.z;player.position.x=THREE.MathUtils.clamp(player.positio
 for(const kit of medkits){if(!kit.used){kit.group.rotation.y+=dt*.7;kit.group.position.y=.08+Math.sin(elapsed*2.2+kit.group.position.x)*.08;if(player.position.distanceTo(kit.group.position)<2.2){kit.used=true;health=Math.min(100,health+35);scene.remove(kit.group);sound(660,.2,'sine',.06);updateHud();toast('Medkit collected: health restored!')}}}
 for(const c of crystals){c.group.rotation.y+=dt*1.2;c.group.position.y=Math.sin(elapsed*2+c.group.position.x)*.12;if(!c.got&&player.position.distanceTo(c.group.position)<2.2){c.got=true;found++;scene.remove(c.group);sound(880,.22,'sine',.07);setTimeout(()=>sound(1180,.28,'sine',.05),90);updateHud();toast('Energy crystal secured!')}}
 const toPlayer=new THREE.Vector3().subVectors(player.position,enemy.position);const dist=toPlayer.length();
-const alertRange=found>0?29:22;
-if(dist<alertRange){
+if(found===3&&!bossAwakened){bossAwakened=true;updateHud();toast('THE ISLAND GUARDIAN HAS AWAKENED! Find a weapon!')}\nconst alertRange=found>0?29:22;
+if(dist<alertRange&&!bossDefeated){
   toPlayer.normalize();
   const chasingSpeed=dist<5?3.4:dist<12?2.8:2.2;
   enemy.position.addScaledVector(toPlayer,dt*chasingSpeed);
@@ -180,7 +184,7 @@ torso.rotation.x=attacking?-.22+Math.sin(elapsed*15)*.12:Math.sin(elapsed*3)*.02
 torso.rotation.z=attacking?Math.sin(elapsed*11)*.09:Math.sin(elapsed*2.5)*.018;
 monsterClaws.forEach((claw,i)=>{const side=i%2===0?1:-1;claw.rotation.x=attacking?Math.sin(elapsed*13+i*Math.PI)*.62:Math.sin(elapsed*2+i)*.045;claw.rotation.z=Math.PI+(attacking?side*(.28+Math.max(0,Math.sin(elapsed*13+i))* .35):side*.04)});
 eyeMat.emissiveIntensity=attacking?2.8+Math.max(0,Math.sin(elapsed*14))*2.2:1.7+Math.sin(elapsed*2)*.3;
-enemy.rotation.z=dist<alertRange?Math.sin(elapsed*8)*.035:0;if(dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-12);$('hud').classList.remove('damageFlash');void $('hud').offsetWidth;$('hud').classList.add('damageFlash');lastHit=elapsed;sound(95,.3,'sawtooth',.09);updateHud();toast('The creature hit you!');if(health<=35&&!lowHealthWarned){toast('LOW HEALTH! Find a green medkit!');lowHealthWarned=true}if(health>35)lowHealthWarned=false;if(!health)finish(false)}
+enemy.rotation.z=dist<alertRange?Math.sin(elapsed*8)*.035:0;if(!bossDefeated&&dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-(bossAwakened?18:12));$('hud').classList.remove('damageFlash');void $('hud').offsetWidth;$('hud').classList.add('damageFlash');lastHit=elapsed;sound(95,.3,'sawtooth',.09);updateHud();toast('The creature hit you!');if(health<=35&&!lowHealthWarned){toast('LOW HEALTH! Find a green medkit!');lowHealthWarned=true}if(health>35)lowHealthWarned=false;if(!health)finish(false)}
 chest.rotation.y+=dt*.12;
 caveLight.intensity=1.7+Math.sin(elapsed*2.4)*.35;
 if(!caveTrapTriggered&&!treasureFound&&player.position.distanceTo(trapGroup.position)<2.25){
@@ -189,7 +193,7 @@ if(!caveTrapTriggered&&!treasureFound&&player.position.distanceTo(trapGroup.posi
   sound(72,.38,'sawtooth',.085);toast('CAVE TRAP! You lost 20 health!');
   if(health<=0)finish(false);
 }
-beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(beacon.position)<4){beaconLight.intensity=5;if(!beaconPrompted){toast('Extraction beacon: press USE');beaconPrompted=true}}else{beaconPrompted=false}
+beaconLight.intensity=found===3&&(!bossAwakened||bossDefeated)?3:0;if(found===3&&(!bossAwakened||bossDefeated)&&player.position.distanceTo(beacon.position)<4){beaconLight.intensity=5;if(!beaconPrompted){toast('Extraction beacon: press USE');beaconPrompted=true}}else{beaconPrompted=false}
 }
 const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
 const desired=player.position.clone().add(rotatedOffset);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(player.position.x,1.1,player.position.z);
