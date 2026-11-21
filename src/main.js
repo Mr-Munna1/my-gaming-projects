@@ -6,14 +6,18 @@ const mount=document.querySelector('#game');
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x8daeb0);
 scene.fog=new THREE.FogExp2(0x8daeb0,.012);
-const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,220);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,260);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;mount.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xd5eaff,0x263524,2.25));
 const sun=new THREE.DirectionalLight(0xffe5c2,3.4);sun.position.set(-25,45,20);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-55;sun.shadow.camera.right=55;sun.shadow.camera.top=55;sun.shadow.camera.bottom=-55;scene.add(sun);
 const mat=(color,roughness=1)=>new THREE.MeshStandardMaterial({color,roughness});
 const groundMat=mat(0x526b3d),sandMat=mat(0xc5ae79),rockMat=mat(0x59645d),barkMat=mat(0x493526),leafMat=mat(0x244d35),leaf2=mat(0x376c3d);
-const ground=new THREE.Mesh(new THREE.CircleGeometry(49,64),groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;scene.add(ground);
+const groundGeometry=new THREE.CircleGeometry(49,120);
+const groundPositions=groundGeometry.attributes.position;
+for(let i=0;i<groundPositions.count;i++){const x=groundPositions.getX(i),z=groundPositions.getY(i);groundPositions.setZ(i,(Math.sin(x*.16)+Math.cos(z*.14))*0.22+Math.sin((x+z)*.08)*.34)}
+groundGeometry.computeVertexNormals();
+const ground=new THREE.Mesh(groundGeometry,groundMat);ground.rotation.x=-Math.PI/2;ground.position.y=-.3;ground.receiveShadow=true;scene.add(ground);
 const beach=new THREE.Mesh(new THREE.RingGeometry(40,49,64),sandMat);beach.rotation.x=-Math.PI/2;beach.position.y=-.26;scene.add(beach);
 const water=new THREE.Mesh(new THREE.CircleGeometry(75,64),new THREE.MeshStandardMaterial({color:0x246b78,roughness:.28,metalness:.15}));water.rotation.x=-Math.PI/2;water.position.y=-.8;scene.add(water);
 // Island ridges and scattered boulders
@@ -65,7 +69,7 @@ function finish(win){ended=true;$('endTitle').textContent=win?'MISSION COMPLETE'
 const joy=$('joystick'),stick=$('stick');let joyId=null;function joyMove(e){const r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),len=Math.hypot(dx,dy),m=Math.min(38,len),a=Math.atan2(dy,dx);keys.x=Math.cos(a)*m/38;keys.y=Math.sin(a)*m/38;stick.style.transform='translate('+keys.x*28+'px,'+keys.y*28+'px)'}
 joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(joyId);joyMove(e)});joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)joyMove(e)});function joyEnd(){joyId=null;keys.x=keys.y=0;stick.style.transform='translate(0,0)'}joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
 addEventListener('keydown',e=>{if(e.key==='w'||e.key==='ArrowUp')keys.y=-1;if(e.key==='s'||e.key==='ArrowDown')keys.y=1;if(e.key==='a'||e.key==='ArrowLeft')keys.x=-1;if(e.key==='d'||e.key==='ArrowRight')keys.x=1;if(e.shiftKey)running=true});addEventListener('keyup',e=>{if(['w','s','ArrowUp','ArrowDown'].includes(e.key))keys.y=0;if(['a','d','ArrowLeft','ArrowRight'].includes(e.key))keys.x=0;if(e.key==='Shift')running=false});
-const clock=new THREE.Clock();const cameraOffset=new THREE.Vector3(0,7,10);let elapsed=0;
+const clock=new THREE.Clock();const cameraOffset=new THREE.Vector3(0,7.5,13);let elapsed=0;
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;if(started&&!ended){const len=Math.hypot(keys.x,keys.y);if(len>.05){const speed=running?10:6;const dx=keys.x/Math.max(1,len),dz=keys.y/Math.max(1,len);player.position.x=THREE.MathUtils.clamp(player.position.x+dx*speed*dt,-43,43);player.position.z=THREE.MathUtils.clamp(player.position.z+dz*speed*dt,-43,43);player.rotation.y=Math.atan2(dx,dz);body.position.y=1.05+Math.sin(elapsed*12)*(running?.08:.035)}
 for(const c of crystals){c.group.rotation.y+=dt*1.2;c.group.position.y=Math.sin(elapsed*2+c.group.position.x)*.12;if(!c.got&&player.position.distanceTo(c.group.position)<2.2){c.got=true;found++;scene.remove(c.group);updateHud();toast('Energy crystal secured!')}}
 const toPlayer=new THREE.Vector3().subVectors(player.position,enemy.position);const dist=toPlayer.length();if(dist<22){toPlayer.normalize();enemy.position.addScaledVector(toPlayer,dt*(dist<3?1.4:2.5));enemy.lookAt(player.position.x,0,player.position.z)}if(dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-12);lastHit=elapsed;updateHud();toast('The creature hit you!');if(!health)finish(false)}
