@@ -92,6 +92,13 @@ const chestLid=new THREE.Mesh(new THREE.BoxGeometry(1.68,.35,1.1),goldMat);chest
 const chestLock=new THREE.Mesh(new THREE.BoxGeometry(.22,.32,.08),goldMat);chestLock.position.set(0,.82,-.57);chest.add(chestLock);
 const treasureGlow=new THREE.PointLight(0xffbd45,1.5,7);treasureGlow.position.set(0,1.5,0);chest.add(treasureGlow);
 let treasureFound=false;
+let caveTrapTriggered=false;
+const caveLight=new THREE.PointLight(0x55b9a5,2.2,15);caveLight.position.set(-31,2.4,-22.5);scene.add(caveLight);
+const trapGroup=new THREE.Group();trapGroup.position.set(-31,0,-22.2);scene.add(trapGroup);
+const trapMat=new THREE.MeshStandardMaterial({color:0x87918b,metalness:.72,roughness:.3});
+for(let i=0;i<7;i++){const spike=new THREE.Mesh(new THREE.ConeGeometry(.19,.9,5),trapMat);spike.position.set(-1.8+i*.6,.05,.2);spike.rotation.z=Math.PI;spike.castShadow=true;trapGroup.add(spike)}
+const trapPlate=new THREE.Mesh(new THREE.BoxGeometry(4.5,.07,1.25),mat(0x51483a));trapPlate.position.set(0,-.12,.2);trapGroup.add(trapPlate);
+
 // Ancient research outpost
 const base=new THREE.Mesh(new THREE.BoxGeometry(10,3.2,7),mat(0x68736e));base.position.set(17,1.3,-17);base.castShadow=true;base.receiveShadow=true;scene.add(base);
 const roof=new THREE.Mesh(new THREE.BoxGeometry(10.8,.45,7.8),mat(0x263d40));roof.position.set(17,3.1,-17);scene.add(roof);
@@ -167,7 +174,15 @@ if(dist<alertRange){
 }
 enemy.position.y=.06+Math.sin(elapsed*5.5)*.09;
 enemy.rotation.z=dist<alertRange?Math.sin(elapsed*8)*.035:0;if(dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-12);$('hud').classList.remove('damageFlash');void $('hud').offsetWidth;$('hud').classList.add('damageFlash');lastHit=elapsed;sound(95,.3,'sawtooth',.09);updateHud();toast('The creature hit you!');if(health<=35&&!lowHealthWarned){toast('LOW HEALTH! Find a green medkit!');lowHealthWarned=true}if(health>35)lowHealthWarned=false;if(!health)finish(false)}
-chest.rotation.y+=dt*.12;beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(beacon.position)<4){beaconLight.intensity=5;if(!beaconPrompted){toast('Extraction beacon: press USE');beaconPrompted=true}}else{beaconPrompted=false}
+chest.rotation.y+=dt*.12;
+caveLight.intensity=1.7+Math.sin(elapsed*2.4)*.35;
+if(!caveTrapTriggered&&!treasureFound&&player.position.distanceTo(trapGroup.position)<2.25){
+  caveTrapTriggered=true;health=Math.max(0,health-20);updateHud();
+  for(const spike of trapGroup.children){if(spike.geometry.type==='ConeGeometry')spike.position.y=.55}
+  sound(72,.38,'sawtooth',.085);toast('CAVE TRAP! You lost 20 health!');
+  if(health<=0)finish(false);
+}
+beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(beacon.position)<4){beaconLight.intensity=5;if(!beaconPrompted){toast('Extraction beacon: press USE');beaconPrompted=true}}else{beaconPrompted=false}
 }
 const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
 const desired=player.position.clone().add(rotatedOffset);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(player.position.x,1.1,player.position.z);
