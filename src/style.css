@@ -9,3 +9,4 @@
 .actions #dodge{background:#75452cdd;border-color:#ffc17a88;padding:13px 12px;font-size:11px}.actions #dodge:active{background:#c7793c;color:#fff}.victoryScreen{background:radial-gradient(ellipse at center,#174b45ed,#041316f5)!important}.victoryTitle{color:#b9f58c!important;text-shadow:0 0 24px #70e9a8aa}@media(max-width:390px){.actions{gap:6px}.actions button{padding:12px 10px;font-size:10px}}
 
 .actions #attack{background:#9b4b35dd;border-color:#ffb09a99;padding:13px 12px;font-size:11px}.actions #attack:active{background:#e16b45;color:#fff}
+\n.actions #shoot{background:#405f75dd;border-color:#a4d9ff99;padding:13px 12px;font-size:11px}.actions #shoot:active{background:#659bc0;color:#fff}\n
