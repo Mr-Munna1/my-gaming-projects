@@ -79,6 +79,19 @@ for(let i=0;i<26;i++){
   fly.position.set((Math.random()-.5)*54,1.2+Math.random()*4,(Math.random()-.5)*54);
   scene.add(fly);fireflies.push({mesh:fly,phase:Math.random()*Math.PI*2,x:fly.position.x,y:fly.position.y,z:fly.position.z});
 }
+// Hidden jungle cave and treasure chest: optional side mission
+const caveRock=mat(0x343c37),goldMat=new THREE.MeshStandardMaterial({color:0xd99b32,metalness:.65,roughness:.28,emissive:0x6b3908,emissiveIntensity:.35});
+const cave=new THREE.Group();cave.position.set(-31,0,-25);scene.add(cave);
+const caveDome=new THREE.Mesh(new THREE.SphereGeometry(5.2,12,9,0,Math.PI*2,0,Math.PI*.58),caveRock);
+caveDome.position.y=1.1;caveDome.scale.set(1.25,1,1);cave.add(caveDome);
+const caveDark=new THREE.Mesh(new THREE.CircleGeometry(2.15,16),mat(0x080d0d));
+caveDark.position.set(0,1.35,4.2);caveDark.rotation.y=Math.PI;cave.add(caveDark);
+const chest=new THREE.Group();chest.position.set(-31,0,-19.8);scene.add(chest);
+const chestBase=new THREE.Mesh(new THREE.BoxGeometry(1.6,.9,1.05),mat(0x684020));chestBase.position.y=.55;chest.add(chestBase);
+const chestLid=new THREE.Mesh(new THREE.BoxGeometry(1.68,.35,1.1),goldMat);chestLid.position.set(0,1.13,0);chest.add(chestLid);
+const chestLock=new THREE.Mesh(new THREE.BoxGeometry(.22,.32,.08),goldMat);chestLock.position.set(0,.82,-.57);chest.add(chestLock);
+const treasureGlow=new THREE.PointLight(0xffbd45,1.5,7);treasureGlow.position.set(0,1.5,0);chest.add(treasureGlow);
+let treasureFound=false;
 // Ancient research outpost
 const base=new THREE.Mesh(new THREE.BoxGeometry(10,3.2,7),mat(0x68736e));base.position.set(17,1.3,-17);base.castShadow=true;base.receiveShadow=true;scene.add(base);
 const roof=new THREE.Mesh(new THREE.BoxGeometry(10.8,.45,7.8),mat(0x263d40));roof.position.set(17,3.1,-17);scene.add(roof);
@@ -125,11 +138,11 @@ let audioCtx=null,ambientOsc=null,lastFootstep=0,lastGrowl=0;
 function sound(freq=440,duration=.12,type='sine',volume=.045){try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);g.gain.setValueAtTime(volume,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
 function startAmbience(){try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();if(ambientOsc)return;ambientOsc=audioCtx.createOscillator();const gain=audioCtx.createGain();ambientOsc.type='sine';ambientOsc.frequency.value=58;gain.gain.value=.012;ambientOsc.connect(gain);gain.connect(audioCtx.destination);ambientOsc.start()}catch(e){}}
 const toast=(s)=>{$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),2200)};
-function updateHud(){$('health').textContent=health;const fullHealth=$('healthFill');if(fullHealth)fullHealth.style.width=health+'%';$('healthFillMini').style.width=health+'%';$('staminaFill').style.width=stamina+'%';$('crystals').textContent=found+'/3';$('objective').textContent=found<3?'Find '+(3-found)+' energy crystal'+(found===2?'':'s'):'Reach the extraction beacon';$('hint').textContent=found<3?'The jungle is not empty…':'The beacon is active. Reach the coast.'}
+function updateHud(){$('health').textContent=health;const fullHealth=$('healthFill');if(fullHealth)fullHealth.style.width=health+'%';$('healthFillMini').style.width=health+'%';$('staminaFill').style.width=stamina+'%';$('crystals').textContent=found+'/3';$('objective').textContent=found<3?'Find '+(3-found)+' energy crystal'+(found===2?'':'s'):'Reach the extraction beacon';$('hint').textContent=found<3?'The jungle is not empty…':'The beacon is active. Reach the coast.';const side=$('sideMission');if(side)side.textContent=treasureFound?'SIDE MISSION COMPLETE: Jungle treasure found':'SIDE MISSION: Find the hidden jungle treasure'}
 $('start').onclick=()=>{started=true;startAmbience();sound(520,.18,'triangle');$('startscreen').classList.add('hidden');toast('AARAV: I need to find the others…')};
 $('restart').onclick=()=>location.reload();
 $('run').addEventListener('pointerdown',()=>running=true);$('run').addEventListener('pointerup',()=>running=false);$('run').addEventListener('pointercancel',()=>running=false);
-$('interact').onclick=()=>{if(found===3&&player.position.distanceTo(beacon.position)<5)finish(true);else toast(found===3?'Get closer to the extraction beacon':'Find the glowing crystals first')};
+$('interact').onclick=()=>{if(!treasureFound&&player.position.distanceTo(chest.position)<3.2){treasureFound=true;scene.remove(chest);sound(980,.3,'triangle',.08);updateHud();toast('SECRET FOUND! Ancient jungle treasure collected');return}if(found===3&&player.position.distanceTo(beacon.position)<5)finish(true);else if(!treasureFound&&player.position.distanceTo(chest.position)<7)toast('Move closer to the treasure chest and press USE');else toast(found===3?'Get closer to the extraction beacon':'Find the glowing crystals first')};
 function finish(win){ended=true;sound(win?740:85,.55,win?'triangle':'sawtooth',.08);$('endTitle').textContent=win?'MISSION COMPLETE':'YOU WERE HUNTED';$('endText').textContent=win?'Aarav escaped… but something followed him off the island.':'The island has claimed another explorer. Try a different route.';$('endScreen').classList.remove('hidden')}
 // Touch joystick and keyboard
 const joy=$('joystick'),stick=$('stick');let joyId=null;function joyMove(e){const r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),len=Math.hypot(dx,dy),m=Math.min(38,len),a=Math.atan2(dy,dx);keys.x=Math.cos(a)*m/38;keys.y=Math.sin(a)*m/38;stick.style.transform='translate('+keys.x*28+'px,'+keys.y*28+'px)'}
@@ -154,7 +167,7 @@ if(dist<alertRange){
 }
 enemy.position.y=.06+Math.sin(elapsed*5.5)*.09;
 enemy.rotation.z=dist<alertRange?Math.sin(elapsed*8)*.035:0;if(dist<2.0&&elapsed-lastHit>1.1){health=Math.max(0,health-12);$('hud').classList.remove('damageFlash');void $('hud').offsetWidth;$('hud').classList.add('damageFlash');lastHit=elapsed;sound(95,.3,'sawtooth',.09);updateHud();toast('The creature hit you!');if(health<=35&&!lowHealthWarned){toast('LOW HEALTH! Find a green medkit!');lowHealthWarned=true}if(health>35)lowHealthWarned=false;if(!health)finish(false)}
-beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(beacon.position)<4){beaconLight.intensity=5;if(!beaconPrompted){toast('Extraction beacon: press USE');beaconPrompted=true}}else{beaconPrompted=false}
+chest.rotation.y+=dt*.12;beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(beacon.position)<4){beaconLight.intensity=5;if(!beaconPrompted){toast('Extraction beacon: press USE');beaconPrompted=true}}else{beaconPrompted=false}
 }
 const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
 const desired=player.position.clone().add(rotatedOffset);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(player.position.x,1.1,player.position.z);
