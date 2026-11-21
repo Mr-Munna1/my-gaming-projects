@@ -77,7 +77,7 @@ const flyMat=new THREE.MeshBasicMaterial({color:0xbaff72});
 for(let i=0;i<26;i++){
   const fly=new THREE.Mesh(new THREE.SphereGeometry(.055,6,6),flyMat);
   fly.position.set((Math.random()-.5)*54,1.2+Math.random()*4,(Math.random()-.5)*54);
-  scene.add(fly);fireflies.push({mesh:fly,phase:Math.random()*Math.PI*2});
+  scene.add(fly);fireflies.push({mesh:fly,phase:Math.random()*Math.PI*2,x:fly.position.x,y:fly.position.y,z:fly.position.z});
 }
 // Ancient research outpost
 const base=new THREE.Mesh(new THREE.BoxGeometry(10,3.2,7),mat(0x68736e));base.position.set(17,1.3,-17);base.castShadow=true;base.receiveShadow=true;scene.add(base);
@@ -158,6 +158,6 @@ beaconLight.intensity=found===3?3:0;if(found===3&&player.position.distanceTo(bea
 }
 const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
 const desired=player.position.clone().add(rotatedOffset);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(player.position.x,1.1,player.position.z);
-for(const f of fireflies){f.mesh.position.y+=Math.sin(elapsed*2.1+f.phase)*.0018;f.mesh.position.x+=Math.cos(elapsed*.7+f.phase)*.0025;f.mesh.material.opacity=1;}drawRadar();renderer.render(scene,camera)}
+for(const f of fireflies){f.mesh.position.y=f.y+Math.sin(elapsed*2.1+f.phase)*.22;f.mesh.position.x=f.x+Math.cos(elapsed*.7+f.phase)*.28;}drawRadar();renderer.render(scene,camera)}
 updateHud();animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.65))});
