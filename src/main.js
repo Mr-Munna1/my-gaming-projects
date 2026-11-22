@@ -200,7 +200,8 @@ heroLimbs.push(hair);playerPlaceholder.push(...heroLimbs);
 let playerMixer=null,playerIdle=null,playerWalk=null,playerSprint=null,playerActiveAction=null;
 loadModel('packs/mini-characters/character-male-c.glb').then(gltf=>{
  const avatar=gltf.scene.clone(true);const box=new THREE.Box3().setFromObject(avatar);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());const targetHeight=2.25;avatar.scale.setScalar(targetHeight/Math.max(size.y,.01));avatar.position.set(-center.x*avatar.scale.x,-box.min.y*avatar.scale.y,-center.z*avatar.scale.z);avatar.rotation.y=Math.PI;
- avatar.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});player.add(avatar); // Keep the local survivor visible as a guaranteed fallback.
+ avatar.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});player.add(avatar); // Hide the procedural fallback only after the real animated avatar has loaded successfully.
+ playerPlaceholder.forEach(o=>{o.visible=false});
  if(gltf.animations?.length){playerMixer=new THREE.AnimationMixer(avatar);const findClip=(keys)=>gltf.animations.find(c=>keys.some(k=>c.name.toLowerCase().includes(k)));const idleClip=findClip(['idle','stand'])||gltf.animations[0];const walkClip=findClip(['walk']);const sprintClip=findClip(['sprint','run']);if(idleClip)playerIdle=playerMixer.clipAction(idleClip);if(walkClip)playerWalk=playerMixer.clipAction(walkClip);if(sprintClip)playerSprint=playerMixer.clipAction(sprintClip);playerActiveAction=playerIdle;if(playerActiveAction)playerActiveAction.play()}
  console.info('CC0 animated survivor loaded',gltf.animations.map(a=>a.name));
 }).catch(e=>console.warn('Animated survivor unavailable; using animated local character',e));
