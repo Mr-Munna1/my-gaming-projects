@@ -11,3 +11,5 @@
 .actions #attack{background:#9b4b35dd;border-color:#ffb09a99;padding:13px 12px;font-size:11px}.actions #attack:active{background:#e16b45;color:#fff}
 .actions #shoot{background:#405f75dd;border-color:#a4d9ff99;padding:13px 12px;font-size:11px}.actions #shoot:active{background:#659bc0;color:#fff}
 .actions #shoot{background:#405f75dd;border-color:#a4d9ff99;padding:13px 12px;font-size:11px}.actions #shoot:active{background:#659bc0;color:#fff}
+
+.cinematic{background:radial-gradient(ellipse at 72% 28%,#244c48e8,#030b10f5)!important;z-index:5}.cinematicPanel{border-color:#a5e66e88;box-shadow:0 24px 100px #000c}.cinematicPanel h1{font-size:clamp(38px,10vw,62px);line-height:.94;letter-spacing:1px;color:#e9f4e8;margin:16px 0}.cinematicPanel .story{font-size:15px;max-width:38ch;min-height:90px}.cinematicRule{height:2px;width:64px;background:#a5e66e;box-shadow:0 0 16px #a5e66e;margin:18px 0}.cinematicPanel button{margin-top:12px}
