@@ -5,6 +5,8 @@ import './style.css';
 
 const mount=document.querySelector('#game');
 const scene=new THREE.Scene();
+// Only solid rocks and landmark structures should push the chase camera; foliage must not hide Aarav.
+const cameraBlockers=[];
 scene.background=new THREE.Color(0x526d69);
 scene.fog=new THREE.FogExp2(0x526d69,.009);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,260);
@@ -32,13 +34,13 @@ const ground=new THREE.Mesh(groundGeometry,groundMat);ground.rotation.x=-Math.PI
 const beach=new THREE.Mesh(new THREE.RingGeometry(40,49,64),sandMat);beach.rotation.x=-Math.PI/2;beach.position.y=-.26;scene.add(beach);
 const water=new THREE.Mesh(new THREE.CircleGeometry(75,64),new THREE.MeshStandardMaterial({color:0x246b78,roughness:.28,metalness:.15}));water.rotation.x=-Math.PI/2;water.position.y=-.8;scene.add(water);
 // Island ridges and scattered boulders
-for(let i=0;i<18;i++){const a=i/18*Math.PI*2,r=30+Math.random()*9;const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(3+Math.random()*4,1),rockMat);rock.position.set(Math.cos(a)*r,1.3,Math.sin(a)*r);rock.scale.y=.8;rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true;scene.add(rock)}
+for(let i=0;i<18;i++){const a=i/18*Math.PI*2,r=30+Math.random()*9;const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(3+Math.random()*4,1),rockMat);rock.position.set(Math.cos(a)*r,1.3,Math.sin(a)*r);rock.scale.y=.8;rock.rotation.set(Math.random(),Math.random(),Math.random());rock.castShadow=true;scene.add(rock);cameraBlockers.push(rock)}
 // Kenney Nature Kit models (CC0): real GLB trees, rocks, bushes and camp props
 const assetRoot='https://raw.githubusercontent.com/Hidencod/tge-assets/main/';
 const gltfLoader=new GLTFLoader();gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 const modelCache=new Map();
 function loadModel(path){if(modelCache.has(path))return modelCache.get(path);const url=path.startsWith('http')?path:assetRoot+path;const p=new Promise((resolve,reject)=>gltfLoader.load(url,g=>resolve(g),undefined,reject));modelCache.set(path,p);return p}
-function loadLandmark(url,position,targetWidth,onReady){loadModel(url).then(gltf=>{const model=gltf.scene;const box=new THREE.Box3().setFromObject(model);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());const scale=targetWidth/Math.max(size.x,size.z,.01);model.scale.setScalar(scale);model.position.set(-center.x*scale,-box.min.y*scale,-center.z*scale);model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){const tune=m=>{m.roughness=Math.max(m.roughness??.8,.72);m.needsUpdate=true};Array.isArray(o.material)?o.material.forEach(tune):tune(o.material)}}});const holder=new THREE.Group();holder.position.set(...position);holder.add(model);scene.add(holder);onReady?.(holder,model);}).catch(e=>console.warn('Free jungle landmark unavailable; keeping gameplay fallback',url,e))}
+function loadLandmark(url,position,targetWidth,onReady){loadModel(url).then(gltf=>{const model=gltf.scene;const box=new THREE.Box3().setFromObject(model);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());const scale=targetWidth/Math.max(size.x,size.z,.01);model.scale.setScalar(scale);model.position.set(-center.x*scale,-box.min.y*scale,-center.z*scale);model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){const tune=m=>{m.roughness=Math.max(m.roughness??.8,.72);m.needsUpdate=true};Array.isArray(o.material)?o.material.forEach(tune):tune(o.material)}}});const holder=new THREE.Group();holder.position.set(...position);holder.add(model);scene.add(holder);cameraBlockers.push(holder);onReady?.(holder,model);}).catch(e=>console.warn('Free jungle landmark unavailable; keeping gameplay fallback',url,e))}
 const treeAssets=['packs/nature-kit/tree-detailed.glb','packs/nature-kit/tree-oak.glb','packs/nature-kit/tree-palmdetailedtall.glb','packs/nature-kit/tree-pinetalla-detailed.glb'];
 const rockAssets=['packs/nature-kit/rock-largea.glb','packs/nature-kit/rock-largec.glb','packs/nature-kit/rock-larged.glb'];
 function addProceduralNature(path,x,z,scale){
@@ -54,9 +56,9 @@ function addProceduralNature(path,x,z,scale){
  scene.add(group);
 }
 async function addNatureModel(path,x,z,scale=4){try{const gltf=await loadModel(path);const model=gltf.scene.clone(true);model.position.set(x,0,z);model.scale.setScalar(scale);model.rotation.y=Math.random()*Math.PI*2;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;const naturalize=(m)=>{const n=(m.name||'').toLowerCase();m.map=null;m.vertexColors=false;if(n.includes('leaf')||n.includes('green'))m.color.set(0x326b35);else if(n.includes('wood')||n.includes('bark'))m.color.set(0x62432c);else if(path.includes('tree'))m.color.set(o.position.y<.4?0x62432c:0x39783b);m.roughness=1;m.side=THREE.DoubleSide;m.needsUpdate=true};if(Array.isArray(o.material))o.material.forEach(naturalize);else if(o.material)naturalize(o.material)}});scene.add(model)}catch(e){console.warn('Nature model unavailable; using local procedural asset',path,e);addProceduralNature('tree',x,z,scale)}}
-for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*34,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<5&&z>-20&&z<14)continue;addNatureModel(treeAssets[i%treeAssets.length],x,z,3.5+Math.random()*1.8)}
+for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*34,x=Math.cos(a)*r,z=Math.sin(a)*r;if((Math.abs(x)<5&&z>-20&&z<14)||Math.hypot(x, z-17)<12)continue;addNatureModel(treeAssets[i%treeAssets.length],x,z,3.5+Math.random()*1.8)}
 for(let i=0;i<42;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*35;addNatureModel(rockAssets[i%rockAssets.length],Math.cos(a)*r,Math.sin(a)*r,1.2+Math.random()*1.5)}
-for(let i=0;i<28;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*28;addNatureModel('packs/nature-kit/plant-bushdetailed.glb',Math.cos(a)*r,Math.sin(a)*r,2.5+Math.random()*1.5)}
+for(let i=0;i<28;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*28,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.hypot(x,z-17)<10)continue;addNatureModel('packs/nature-kit/plant-bushdetailed.glb',x,z,2.5+Math.random()*1.5)}
 // Dense jungle floor, winding dirt trail, fallen logs and glowing fireflies
 const trailCurve=new THREE.CatmullRomCurve3([
   new THREE.Vector3(0,-.17,17),new THREE.Vector3(-7,-.17,9),
@@ -200,8 +202,8 @@ heroLimbs.push(hair);playerPlaceholder.push(...heroLimbs);
 let playerMixer=null,playerIdle=null,playerWalk=null,playerSprint=null,playerActiveAction=null;
 loadModel('packs/mini-characters/character-male-c.glb').then(gltf=>{
  const avatar=gltf.scene.clone(true);const box=new THREE.Box3().setFromObject(avatar);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());const targetHeight=2.25;avatar.scale.setScalar(targetHeight/Math.max(size.y,.01));avatar.position.set(-center.x*avatar.scale.x,-box.min.y*avatar.scale.y,-center.z*avatar.scale.z);avatar.rotation.y=Math.PI;
- avatar.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});player.add(avatar); // Hide the procedural fallback only after the real animated avatar has loaded successfully.
- playerPlaceholder.forEach(o=>{o.visible=false});
+ avatar.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});player.add(avatar); // Keep the guaranteed visible survivor fallback until the imported avatar is confirmed in-game.
+ avatar.visible=false;
  if(gltf.animations?.length){playerMixer=new THREE.AnimationMixer(avatar);const findClip=(keys)=>gltf.animations.find(c=>keys.some(k=>c.name.toLowerCase().includes(k)));const idleClip=findClip(['idle','stand'])||gltf.animations[0];const walkClip=findClip(['walk']);const sprintClip=findClip(['sprint','run']);if(idleClip)playerIdle=playerMixer.clipAction(idleClip);if(walkClip)playerWalk=playerMixer.clipAction(walkClip);if(sprintClip)playerSprint=playerMixer.clipAction(sprintClip);playerActiveAction=playerIdle;if(playerActiveAction)playerActiveAction.play()}
  console.info('CC0 animated survivor loaded',gltf.animations.map(a=>a.name));
 }).catch(e=>console.warn('Animated survivor unavailable; using animated local character',e));
@@ -354,7 +356,7 @@ joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(j
 addEventListener('keydown',e=>{if(e.key==='w'||e.key==='ArrowUp')keys.y=-1;if(e.key==='s'||e.key==='ArrowDown')keys.y=1;if(e.key==='a'||e.key==='ArrowLeft')keys.x=-1;if(e.key==='d'||e.key==='ArrowRight')keys.x=1;if(e.key==='e'||e.key==='E')$('interact').click();if(e.shiftKey)running=true});addEventListener('keyup',e=>{if(['w','s','ArrowUp','ArrowDown'].includes(e.key))keys.y=0;if(['a','d','ArrowLeft','ArrowRight'].includes(e.key))keys.x=0;if(e.key==='Shift')running=false});
 const radar=$('minimap')?.getContext('2d');
 function drawRadar(){if(!radar)return;const w=radar.canvas.width,h=radar.canvas.height;radar.clearRect(0,0,w,h);radar.fillStyle='rgba(4,18,20,.78)';radar.beginPath();radar.arc(w/2,h/2,w/2-2,0,Math.PI*2);radar.fill();radar.strokeStyle='rgba(190,230,190,.5)';radar.lineWidth=1;radar.beginPath();radar.arc(w/2,h/2,w/2-4,0,Math.PI*2);radar.stroke();const dot=(x,z,color,r=3)=>{const px=w/2+(x-player.position.x)*.92,py=h/2+(z-player.position.z)*.92;if(Math.hypot(px-w/2,py-h/2)<w/2-7){radar.fillStyle=color;radar.beginPath();radar.arc(px,py,r,0,Math.PI*2);radar.fill()}};dot(0,0,'#d9ff9b',4);dot(enemy.position.x,enemy.position.z,'#ff655c',4);dot(beacon.position.x,beacon.position.z,'#69f5d0',4);for(const c of crystals)if(!c.got)dot(c.group.position.x,c.group.position.z,'#66eaff',3);for(const kit of medkits)if(!kit.used)dot(kit.group.position.x,kit.group.position.z,'#6cff9b',3)}
-const clock=new THREE.Clock();const cameraOffset=new THREE.Vector3(0,3.05,6.6);let elapsed=0;const cameraRaycaster=new THREE.Raycaster();const cameraRayDirection=new THREE.Vector3();
+const clock=new THREE.Clock();const cameraOffset=new THREE.Vector3(1.05,3.35,8.6);let elapsed=0;const cameraRaycaster=new THREE.Raycaster();const cameraRayDirection=new THREE.Vector3();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;if(started&&!ended){saveClock+=dt;if(saveClock>=10){saveClock=0;saveGame()}}const night=(Math.sin(elapsed*.018)+1)*.5;sun.intensity=2.0+night*1.5;scene.fog.color.setHex(night>.72?0x263747:0x8daeb0);scene.background.copy(scene.fog.color);$('staminaFill').style.width=stamina+'%';if(started&&!ended&&!introCutsceneActive&&!bossCutsceneActive&&!bossVictoryActive){const len=Math.hypot(keys.x,keys.y);if(len>.05){const sprinting=running&&stamina>1;const speed=sprinting?10:6;if(sprinting)stamina=Math.max(0,stamina-25*dt);else stamina=Math.min(100,stamina+14*dt);if(elapsed-lastFootstep>(sprinting?.28:.48)){sound(sprinting?115:82,.055,'triangle',.018);lastFootstep=elapsed;}
 const move=new THREE.Vector3(keys.x/Math.max(1,len),0,keys.y/Math.max(1,len)).applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
 const dx=move.x,dz=move.z;player.position.x=THREE.MathUtils.clamp(player.position.x+dx*speed*dt,-43,43);player.position.z=THREE.MathUtils.clamp(player.position.z+dz*speed*dt,-43,43);player.rotation.y=Math.atan2(dx,dz);body.position.y=1.05+Math.sin(elapsed*12)*(running?.08:.035);if(!playerMixer){heroLimbs.forEach((part,i)=>{if(i<2)part.rotation.x=Math.sin(elapsed*(sprinting?13:9)+Math.PI)*.48;if(i>=2&&i<4)part.rotation.x=Math.sin(elapsed*(sprinting?13:9))*.48})}}else if(!playerMixer){heroLimbs.forEach(part=>{part.rotation.x=THREE.MathUtils.lerp(part.rotation.x,0,dt*8)})}if(playerMixer){const desired=len>.05?(running&&stamina>1?(playerSprint||playerWalk||playerIdle):(playerWalk||playerIdle)):playerIdle;if(desired&&desired!==playerActiveAction){desired.reset().fadeIn(.18);playerActiveAction?.fadeOut(.18);playerActiveAction=desired}playerMixer.update(dt)}if(guardianMixer){const moving=bossAwakened&&enemy.position.distanceTo(player.position)<(found>0?29:22);const clip=moving?guardianWalk:guardianIdle;if(clip&&clip!==guardianAction){const next=guardianMixer.clipAction(clip);next.reset().fadeIn(.25);guardianAction?.fadeOut(.25);guardianAction=next;guardianAction.play()}guardianMixer.update(dt)}wildlifeMixers.forEach(m=>m.update(dt));
@@ -401,7 +403,7 @@ beaconLight.intensity=found===3&&(!bossAwakened||bossDefeated)?3:0;if(found===3&
 if(extractionActive){extractionElapsed+=dt;const t=Math.min(1,extractionElapsed/6.5);helicopter.position.set(0,22-17*(t*t*(3-2*t)),-78+43*(t*t*(3-2*t)));helicopter.rotation.y=Math.PI+Math.sin(extractionElapsed*1.8)*.035;rotorHub.rotation.y+=dt*27;tailRotor.rotation.z+=dt*19;heliLamp.intensity=2.2+Math.sin(extractionElapsed*8)*.35;if(t>=1){extractionActive=false;$('endTitle').textContent='MISSION COMPLETE';$('endText').textContent='Aarav boards the rescue helicopter. The island vanishes into the storm… but a shadow moves beneath the water.';sound(980,.55,'triangle',.07)}}
 if(cameraMode==='TPP'){
  player.visible=true;
- const target=player.position.clone().add(new THREE.Vector3(0,1.35,0));
+ const target=player.position.clone().add(new THREE.Vector3(0,1.28,0));
  const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
  const desired=player.position.clone().add(rotatedOffset);
  // Keep the chase camera from passing through nearby jungle props.
@@ -410,12 +412,9 @@ if(cameraMode==='TPP'){
  cameraRayDirection.normalize();
  cameraRaycaster.set(target,cameraRayDirection);
  cameraRaycaster.far=cameraDistance;
- const blockers=cameraRaycaster.intersectObjects(scene.children,true).filter(hit=>{
-  let node=hit.object;while(node){if(node===player)return false;node=node.parent}
-  return hit.distance>.25;
- });
- if(blockers.length)desired.copy(target).addScaledVector(cameraRayDirection,Math.max(2.2,blockers[0].distance-.35));
- camera.position.lerp(desired,1-Math.pow(.00008,dt));
+ const blockers=cameraRaycaster.intersectObjects(cameraBlockers,true).filter(hit=>hit.distance>.5);
+ if(blockers.length)desired.copy(target).addScaledVector(cameraRayDirection,Math.max(4.6,blockers[0].distance-.55));
+ camera.position.lerp(desired,1-Math.pow(.0008,dt));
  camera.lookAt(target);
 }else{
  player.visible=false;
