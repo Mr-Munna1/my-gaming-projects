@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#111820">
+  <meta name="description" content="The Last Patient — explore the abandoned Blackwood Psychiatric Hospital as Ranit.">
+  <title>THE LAST PATIENT — EXPLORATION BUILD</title>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="hud">
+    <header class="topbar">
+      <div class="brand">THE LAST <span>PATIENT</span><small>BLACKWOOD PSYCHIATRIC HOSPITAL</small></div>
+      <div class="top-actions"><span id="floorLabel">GROUND FLOOR</span><button id="cameraMode" type="button">TPP</button><button id="mapToggle" type="button">MAP</button></div>
+    </header>
+    <section class="mission"><small>EXPLORATION BUILD</small><strong id="areaName">MAIN RECEPTION</strong><span id="areaHint">Explore the hospital. No enemies in this build.</span></section>
+    <div id="crosshair"></div>
+    <div id="toast"></div>
+    <aside id="mapPanel" class="map-panel hidden">
+      <div class="map-head"><b>HOSPITAL DIRECTORY</b><button id="closeMap">×</button></div>
+      <div id="mapList"></div>
+    </aside>
+    <div id="interactHint">E  INTERACT</div>
+    <div id="controls">
+      <div id="joystick" class="joystick"><div id="stick"></div></div>
+      <div class="mobile-actions"><button id="runButton">RUN</button><button id="interactButton">USE</button></div>
+    </div>
+    <div id="floorPicker" class="modal hidden">
+      <div class="modal-card"><small>BLACKWOOD ELEVATOR</small><h2>CHOOSE A FLOOR</h2><div id="floorButtons"></div><button id="closeElevator" class="secondary">CLOSE</button></div>
+    </div>
+    <div id="startScreen" class="screen">
+      <div class="start-card">
+        <p class="eyebrow">A WALK THROUGH THE UNKNOWN</p>
+        <h1>THE LAST<br><span>PATIENT</span></h1>
+        <p class="subtitle">You are Ranit. Explore Blackwood Psychiatric Hospital and learn its layout before the nightmare begins.</p>
+        <div class="start-meta"><span>3D EXPLORATION</span><span>FPP + TPP</span><span>NO ENEMIES</span></div>
+        <button id="startButton">ENTER THE HOSPITAL</button>
+        <small>WASD / JOYSTICK TO MOVE · MOUSE / RIGHT DRAG TO LOOK · E TO INTERACT · V TO SWITCH CAMERA</small>
+      </div>
+    </div>
+    <div id="pauseScreen" class="screen hidden">
+      <div class="start-card compact"><p class="eyebrow">EXPLORATION PAUSED</p><h2>BLACKWOOD</h2><button id="resumeButton">RESUME EXPLORING</button></div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
