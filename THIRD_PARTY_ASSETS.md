@@ -13,10 +13,10 @@
 - Runtime model mirror: https://github.com/Hidencod/tge-assets
 - Model loaded: character-male-c. Animation clips used: idle, walk, sprint. The player switches clips based on movement and sprint input.
 
-## Kenney Space Kit
-- Source: https://kenney.nl/assets/space-kit
-- License: Creative Commons CC0 1.0
-- Runtime model mirror: https://github.com/Hidencod/tge-assets
-- Model loaded: alien.
+## Gobkit CC0 3D models
+- Source: https://gobkit.com/freebies
+- License: CC0 1.0 Universal; commercial use and modification permitted, attribution not required.
+- Runtime model URLs: https://gobkit.com/freebies/dino/Spinosaurus.glb, https://gobkit.com/freebies/birds/Macaw.glb, https://gobkit.com/freebies/animal012/WildBoar.glb
+- Models loaded: animated Spinosaurus guardian, Macaw wildlife, and Wild Boar wildlife. Named idle/walk animation clips are used when present.
 
-These models are fetched from the public GitHub mirror at runtime, so an internet connection is required for the external 3D models to appear. The game retains fallback placeholder meshes if an asset request fails.
+The Kenney and Gobkit models are fetched from their public asset hosts at runtime, so an internet connection is required for these external 3D models to appear. The game retains local procedural fallback meshes for the player and guardian if an asset request fails.
