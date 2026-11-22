@@ -48,7 +48,7 @@ const roomLabels=[];
 const boxGeo=new THREE.BoxGeometry(1,1,1);
 function box(parent,name,x,y,z,w,h,d,material,solid=true){
  const mesh=new THREE.Mesh(boxGeo,material);mesh.name=name;mesh.position.set(x,y+h/2,z);mesh.scale.set(w,h,d);mesh.castShadow=h>.25;mesh.receiveShadow=true;parent.add(mesh);
- if(solid)colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,minY:y,maxY:y+h,mesh});
+ if(solid)colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,minY:y,maxY:y+h,mesh,floor:currentFloor});
  return mesh;
 }
 function addLabel(parent,text,x,y,z){
@@ -94,7 +94,7 @@ function addDoor(parent,x,z,orientation=0,label='DOOR'){
  const leaf=box(g,label,0,0,.025,1.08,2.38,.1,mats.wood,false);
  const handle=box(g,'handle',.38,1.08,.1,.06,.16,.06,mats.metal,false);
  const obj={group:g,leaf,handle,open:false,label,position:new THREE.Vector3(x,0,z)};
- interactables.push({type:'door',obj,position:obj.position,label});
+ interactables.push({type:'door',obj,position:obj.position,label,floor:currentFloor});
  return obj;
 }
 function addRoom(parent,name,cx,cz,opts={}){
@@ -247,7 +247,7 @@ function setFloor(id){
  if(!floors.some(f=>f.id===id))return;
  currentFloor=id;
  for(const [key,g] of floorGroups)g.visible=key===id;
- player.pos.set(0,0,9.8);ranit.position.copy(player.pos);
+ player.pos.set(0,id*4.2,9.8);ranit.position.copy(player.pos);
  document.querySelector('#floorLabel').textContent=floors.find(f=>f.id===id).name;
  document.querySelector('#areaName').textContent=floors.find(f=>f.id===id).rooms[0];
  document.querySelector('#areaHint').textContent='Explore '+floors.find(f=>f.id===id).name.toLowerCase()+'. No enemies in this build.';
@@ -277,7 +277,7 @@ function interact(){
  const target=nearestInteractable();
  if(!target){showToast('Nothing to interact with nearby');return}
  if(target.type==='elevator')openElevator();
- else if(target.type==='stairs'){const next=currentFloor+(player.pos.x>0?1:-1);if(next>=-1&&next<=4)setFloor(next);else showToast('No more stairs in this direction')}
+ else if(target.type==='stairs'){const next=currentFloor<4?currentFloor+1:currentFloor-1;if(next>=-1&&next<=4)setFloor(next);else showToast('No more stairs in this direction')}
  else if(target.type==='door')toggleDoor(target.obj);
 }
 function updateInteraction(){
@@ -289,7 +289,7 @@ function updateInteraction(){
 function collides(x,z){
  const r=.34,y=player.pos.y;
  for(const c of colliders){
-  if(y+1.8<c.minY||y>c.maxY)continue;
+  if(c.floor!==currentFloor)continue;
   if(x+r>c.minX&&x-r<c.maxX&&z+r>c.minZ&&z-r<c.maxZ)return true;
  }
  return false;
@@ -310,10 +310,10 @@ function updatePlayer(dt){
  ranit.rotation.y=player.yaw+Math.PI;
  const moving=Math.abs(forward)+Math.abs(side)>.05;
  const t=performance.now()*.009;
- ranit.position.y=moving?Math.abs(Math.sin(t))*0.045:0;
+ ranit.position.y=player.pos.y+(moving?Math.abs(Math.sin(t))*0.045:0);
 }
 function updateCamera(){
- const target=new THREE.Vector3(player.pos.x,1.55,player.pos.z);
+ const target=new THREE.Vector3(player.pos.x,player.pos.y+1.55,player.pos.z);
  if(cameraMode==='FPP'){
   camera.position.copy(target).add(new THREE.Vector3(0,.12,0));
   camera.rotation.order='YXZ';camera.rotation.y=player.yaw;camera.rotation.x=player.pitch;
@@ -321,7 +321,7 @@ function updateCamera(){
   const dist=4.8;
   const offset=new THREE.Vector3(Math.sin(player.yaw)*dist,2.05,Math.cos(player.yaw)*dist);
   camera.position.copy(target).add(offset);
-  camera.lookAt(player.pos.x,1.45,player.pos.z);
+  camera.lookAt(player.pos.x,player.pos.y+1.45,player.pos.z);
  }
 }
 function toggleCamera(){cameraMode=cameraMode==='TPP'?'FPP':'TPP';document.querySelector('#cameraMode').textContent=cameraMode;ranit.visible=cameraMode==='TPP';showToast(cameraMode+' CAMERA')}
