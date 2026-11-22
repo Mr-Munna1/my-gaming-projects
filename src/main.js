@@ -184,8 +184,8 @@ for(const x of [-.23,.23]){
  const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.115,.62,4,7),skinMat);arm.position.set(x*2,1.12,0);arm.rotation.z=x<0?-.12:.12;arm.castShadow=true;player.add(arm);
 }
 const hair=new THREE.Mesh(new THREE.SphereGeometry(.35,12,8,0,Math.PI*2,0,Math.PI*.58),hairMat);hair.position.set(0,1.94,0);hair.castShadow=true;player.add(hair);
-const eyeMat=new THREE.MeshBasicMaterial({color:0x171717});
-for(const x of [-.12,.12]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,6,6),eyeMat);eye.position.set(x,1.86,-.3);player.add(eye)}
+const heroEyeMat=new THREE.MeshBasicMaterial({color:0x171717});
+for(const x of [-.12,.12]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,6,6),heroEyeMat);eye.position.set(x,1.86,-.3);player.add(eye)}
 // Player is fully procedural and local: no external character download is required.
 const crystalMat=new THREE.MeshStandardMaterial({color:0x7fffe5,emissive:0x18bca4,emissiveIntensity:2,metalness:.3,roughness:.2});
 const crystals=[];for(const [x,z] of [[-18,2],[19,12],[18,-28]]){const g=new THREE.Group();const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.8),crystalMat);gem.position.y=1.25;g.add(gem);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.15,.045,8,24),new THREE.MeshBasicMaterial({color:0x7fffe5}));ring.rotation.x=Math.PI/2;ring.position.y=1.25;g.add(ring);g.position.set(x,0,z);scene.add(g);crystals.push({group:g,got:false})}
