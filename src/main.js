@@ -227,7 +227,7 @@ const stalkerHead=new THREE.Mesh(new THREE.SphereGeometry(.34,10,8),stalkerMat);
 for(const side of [-1,1]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.085,8,8),stalkerEyeMat);eye.position.set(side*.19,.98,-.86);stalker.add(eye)}
 const stalkerLegs=[];for(let i=0;i<6;i++){const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.075,.55,3,6),stalkerMat);leg.position.set((i%2?-.42:.42),.42,(Math.floor(i/2)-1)*.38);leg.rotation.z=(i%2?-.55:.55);stalker.add(leg);stalkerLegs.push(leg)}
 let stalkerHitAt=0,stalkerWarned=false,stalkerDefeated=false,stalkerHealth=100;
-loadModel('packs/space-kit/alien.glb').then(model=>{monsterPlaceholder.forEach(o=>o.visible=false);const creature=model.clone(true);creature.scale.setScalar(3.2);creature.position.y=0;creature.rotation.y=Math.PI;creature.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});enemy.add(creature)}).catch(e=>console.warn('Creature model unavailable',e));
+loadModel('packs/space-kit/alien.glb').then(gltf=>{monsterPlaceholder.forEach(o=>o.visible=false);const creature=gltf.scene.clone(true);creature.scale.setScalar(3.2);creature.position.y=0;creature.rotation.y=Math.PI;creature.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});enemy.add(creature)}).catch(e=>console.warn('Creature model unavailable',e));
 // Rescue helicopter: procedural low-poly aircraft, built into the game (no external download)
 const helicopter=new THREE.Group();helicopter.visible=false;scene.add(helicopter);
 const heliBodyMat=new THREE.MeshStandardMaterial({color:0x344b48,metalness:.55,roughness:.42});
