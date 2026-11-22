@@ -38,7 +38,7 @@ const assetRoot='https://raw.githubusercontent.com/Hidencod/tge-assets/main/';
 const gltfLoader=new GLTFLoader();gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 const modelCache=new Map();
 function loadModel(path){if(modelCache.has(path))return modelCache.get(path);const url=path.startsWith('http')?path:assetRoot+path;const p=new Promise((resolve,reject)=>gltfLoader.load(url,g=>resolve(g),undefined,reject));modelCache.set(path,p);return p}
-const treeAssets=['https://cdn.vibegamer.io/assets/tree-oak-kenney/642578b999/tree-oak-kenney.glb','https://cdn.vibegamer.io/assets/tree-pine-tall-a-detailed-kenney/a34bda36ad/tree-pine-tall-a-detailed-kenney.glb','https://cdn.vibegamer.io/assets/palm-detailed-bend-kenney/1abcf888db/palm-detailed-bend-kenney.glb'];
+const treeAssets=['packs/nature-kit/tree-detailed.glb','packs/nature-kit/tree-oak.glb','packs/nature-kit/tree-palmdetailedtall.glb','packs/nature-kit/tree-pinetalla-detailed.glb'];
 const rockAssets=['packs/nature-kit/rock-largea.glb','packs/nature-kit/rock-largec.glb','packs/nature-kit/rock-larged.glb'];
 function addProceduralNature(path,x,z,scale){
  const group=new THREE.Group();group.position.set(x,0,z);group.rotation.y=Math.random()*Math.PI*2;
@@ -52,7 +52,7 @@ function addProceduralNature(path,x,z,scale){
  }
  scene.add(group);
 }
-async function addNatureModel(path,x,z,scale=4){try{const gltf=await loadModel(path);const model=gltf.scene.clone(true);model.position.set(x,0,z);model.scale.setScalar(scale);model.rotation.y=Math.random()*Math.PI*2;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){o.material.side=THREE.DoubleSide;o.material.needsUpdate=true}}});scene.add(model)}catch(e){console.warn('Nature model unavailable; using local procedural asset',path,e);addProceduralNature('tree',x,z,scale)}}
+async function addNatureModel(path,x,z,scale=4){try{const gltf=await loadModel(path);const model=gltf.scene.clone(true);model.position.set(x,0,z);model.scale.setScalar(scale);model.rotation.y=Math.random()*Math.PI*2;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;const naturalize=(m)=>{const n=(m.name||'').toLowerCase();m.map=null;m.vertexColors=false;if(n.includes('leaf')||n.includes('green'))m.color.set(0x326b35);else if(n.includes('wood')||n.includes('bark'))m.color.set(0x62432c);else if(path.includes('tree'))m.color.set(o.position.y<.4?0x62432c:0x39783b);m.roughness=1;m.side=THREE.DoubleSide;m.needsUpdate=true};if(Array.isArray(o.material))o.material.forEach(naturalize);else if(o.material)naturalize(o.material)}});scene.add(model)}catch(e){console.warn('Nature model unavailable; using local procedural asset',path,e);addProceduralNature('tree',x,z,scale)}}
 for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*34,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<5&&z>-20&&z<14)continue;addNatureModel(treeAssets[i%treeAssets.length],x,z,3.5+Math.random()*1.8)}
 for(let i=0;i<42;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*35;addNatureModel(rockAssets[i%rockAssets.length],Math.cos(a)*r,Math.sin(a)*r,1.2+Math.random()*1.5)}
 for(let i=0;i<28;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*28;addNatureModel('packs/nature-kit/plant-bushdetailed.glb',Math.cos(a)*r,Math.sin(a)*r,2.5+Math.random()*1.5)}
@@ -191,7 +191,7 @@ for(const x of [-.12,.12]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.03
 heroLimbs.push(hair);playerPlaceholder.push(...heroLimbs);
 // Replace the blocky fallback with a textured, rigged CC0 survivor character when the model loads.
 let playerMixer=null,playerIdle=null,playerWalk=null,playerSprint=null,playerActiveAction=null;
-loadModel('https://cdn.vibegamer.io/assets/mini-characters-male-c-kenney/0af0a94322/mini-characters-male-c-kenney.glb').then(gltf=>{
+loadModel('packs/mini-characters/character-male-c.glb').then(gltf=>{
  const avatar=gltf.scene.clone(true);const box=new THREE.Box3().setFromObject(avatar);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());const targetHeight=2.25;avatar.scale.setScalar(targetHeight/Math.max(size.y,.01));avatar.position.set(-center.x*avatar.scale.x,-box.min.y*avatar.scale.y,-center.z*avatar.scale.z);avatar.rotation.y=Math.PI;
  avatar.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});player.add(avatar);playerPlaceholder.forEach(o=>o.visible=false);
  if(gltf.animations?.length){playerMixer=new THREE.AnimationMixer(avatar);const findClip=(keys)=>gltf.animations.find(c=>keys.some(k=>c.name.toLowerCase().includes(k)));const idleClip=findClip(['idle','stand'])||gltf.animations[0];const walkClip=findClip(['walk']);const sprintClip=findClip(['sprint','run']);if(idleClip)playerIdle=playerMixer.clipAction(idleClip);if(walkClip)playerWalk=playerMixer.clipAction(walkClip);if(sprintClip)playerSprint=playerMixer.clipAction(sprintClip);playerActiveAction=playerIdle;if(playerActiveAction)playerActiveAction.play()}
