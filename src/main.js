@@ -39,7 +39,19 @@ const modelCache=new Map();
 function loadModel(path){if(modelCache.has(path))return modelCache.get(path);const p=new Promise((resolve,reject)=>gltfLoader.load(assetRoot+path,g=>resolve(g.scene),undefined,reject));modelCache.set(path,p);return p}
 const treeAssets=['packs/nature-kit/tree-detailed.glb','packs/nature-kit/tree-oak.glb','packs/nature-kit/tree-palmdetailedtall.glb','packs/nature-kit/tree-default-dark.glb'];
 const rockAssets=['packs/nature-kit/rock-largea.glb','packs/nature-kit/rock-largec.glb','packs/nature-kit/rock-larged.glb'];
-async function addNatureModel(path,x,z,scale=4){try{const model=(await loadModel(path)).clone(true);model.position.set(x,0,z);model.scale.setScalar(scale);model.rotation.y=Math.random()*Math.PI*2;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});scene.add(model)}catch(e){console.warn('Nature model unavailable',path,e)}}
+function addProceduralNature(path,x,z,scale){
+ const group=new THREE.Group();group.position.set(x,0,z);group.rotation.y=Math.random()*Math.PI*2;
+ if(path.includes('tree')){
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16*scale,.28*scale,2.1*scale,7),barkMat);trunk.position.y=1.05*scale;trunk.castShadow=true;group.add(trunk);
+  for(let i=0;i<3;i++){const crown=new THREE.Mesh(new THREE.ConeGeometry((1.05-i*.13)*scale,2.2*scale,7),i%2?leaf2:leafMat);crown.position.set(0,(2.2+i*.65)*scale,0);crown.castShadow=true;group.add(crown)}
+ }else if(path.includes('rock')){
+  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.75*scale,1),rockMat);rock.position.y=.45*scale;rock.scale.y=.75;rock.castShadow=true;group.add(rock);
+ }else{
+  for(let i=0;i<4;i++){const bush=new THREE.Mesh(new THREE.SphereGeometry(.48*scale,7,6),i%2?leaf2:leafMat);bush.position.set((Math.random()-.5)*scale,.35*scale+Math.random()*.25*scale,(Math.random()-.5)*scale);bush.scale.y=.72;bush.castShadow=true;group.add(bush)}
+ }
+ scene.add(group);
+}
+async function addNatureModel(path,x,z,scale=4){try{const model=(await loadModel(path)).clone(true);model.position.set(x,0,z);model.scale.setScalar(scale);model.rotation.y=Math.random()*Math.PI*2;model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});scene.add(model)}catch(e){console.warn('Nature model unavailable; using local procedural asset',path,e);addProceduralNature(path,x,z,scale)}}
 for(let i=0;i<100;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*34,x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<5&&z>-20&&z<14)continue;addNatureModel(treeAssets[i%treeAssets.length],x,z,3.5+Math.random()*1.8)}
 for(let i=0;i<42;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*35;addNatureModel(rockAssets[i%rockAssets.length],Math.cos(a)*r,Math.sin(a)*r,1.2+Math.random()*1.5)}
 for(let i=0;i<28;i++){const a=Math.random()*Math.PI*2,r=7+Math.random()*28;addNatureModel('packs/nature-kit/plant-bushdetailed.glb',Math.cos(a)*r,Math.sin(a)*r,2.5+Math.random()*1.5)}
@@ -174,8 +186,7 @@ for(const x of [-.23,.23]){
 const hair=new THREE.Mesh(new THREE.SphereGeometry(.35,12,8,0,Math.PI*2,0,Math.PI*.58),hairMat);hair.position.set(0,1.94,0);hair.castShadow=true;player.add(hair);
 const eyeMat=new THREE.MeshBasicMaterial({color:0x171717});
 for(const x of [-.12,.12]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,6,6),eyeMat);eye.position.set(x,1.86,-.3);player.add(eye)}
-// Optional high-detail character may load later, but the guaranteed survivor remains visible.
-loadModel('packs/mini-characters/character-male-c.glb').then(model=>{const hero=model.clone(true);hero.scale.setScalar(1.8);hero.position.y=0;hero.rotation.y=Math.PI;hero.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});const bounds=new THREE.Box3().setFromObject(hero);if(bounds.getSize(new THREE.Vector3()).y>0.5){playerPlaceholder.forEach(o=>o.visible=false);player.children.filter(o=>o!==machete&&o!==pistol).forEach(o=>{if(o.userData.proceduralHero)o.visible=false});player.add(hero)}}).catch(e=>console.warn('Optional hero model unavailable; using built-in survivor',e));
+// Player is fully procedural and local: no external character download is required.
 const crystalMat=new THREE.MeshStandardMaterial({color:0x7fffe5,emissive:0x18bca4,emissiveIntensity:2,metalness:.3,roughness:.2});
 const crystals=[];for(const [x,z] of [[-18,2],[19,12],[18,-28]]){const g=new THREE.Group();const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.8),crystalMat);gem.position.y=1.25;g.add(gem);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.15,.045,8,24),new THREE.MeshBasicMaterial({color:0x7fffe5}));ring.rotation.x=Math.PI/2;ring.position.y=1.25;g.add(ring);g.position.set(x,0,z);scene.add(g);crystals.push({group:g,got:false})}
 // Emergency medkits: restore health when collected in the jungle
