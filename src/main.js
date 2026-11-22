@@ -38,6 +38,7 @@ const assetRoot='https://raw.githubusercontent.com/Hidencod/tge-assets/main/';
 const gltfLoader=new GLTFLoader();gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 const modelCache=new Map();
 function loadModel(path){if(modelCache.has(path))return modelCache.get(path);const url=path.startsWith('http')?path:assetRoot+path;const p=new Promise((resolve,reject)=>gltfLoader.load(url,g=>resolve(g),undefined,reject));modelCache.set(path,p);return p}
+function loadLandmark(url,position,targetWidth,onReady){loadModel(url).then(gltf=>{const model=gltf.scene;const box=new THREE.Box3().setFromObject(model);const size=box.getSize(new THREE.Vector3());const center=box.getCenter(new THREE.Vector3());const scale=targetWidth/Math.max(size.x,size.z,.01);model.scale.setScalar(scale);model.position.set(-center.x*scale,-box.min.y*scale,-center.z*scale);model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;if(o.material){const tune=m=>{m.roughness=Math.max(m.roughness??.8,.72);m.needsUpdate=true};Array.isArray(o.material)?o.material.forEach(tune):tune(o.material)}}});const holder=new THREE.Group();holder.position.set(...position);holder.add(model);scene.add(holder);onReady?.(holder,model);}).catch(e=>console.warn('Free jungle landmark unavailable; keeping gameplay fallback',url,e))}
 const treeAssets=['packs/nature-kit/tree-detailed.glb','packs/nature-kit/tree-oak.glb','packs/nature-kit/tree-palmdetailedtall.glb','packs/nature-kit/tree-pinetalla-detailed.glb'];
 const rockAssets=['packs/nature-kit/rock-largea.glb','packs/nature-kit/rock-largec.glb','packs/nature-kit/rock-larged.glb'];
 function addProceduralNature(path,x,z,scale){
@@ -145,6 +146,12 @@ const runeOrder=[1,0,2];let runeProgress=0,templeDoorOpen=false;
 const runeButtons=[];
 for(let i=0;i<3;i++){const rune=new THREE.Group();rune.position.set(-2.35+i*2.35,.72,4.35);temple.add(rune);const baseRune=new THREE.Mesh(new THREE.CylinderGeometry(.62,.72,.22,8),templeStone);rune.add(baseRune);const mark=new THREE.Mesh(new THREE.OctahedronGeometry(.3),new THREE.MeshStandardMaterial({color:0x52645a,emissive:0x17231d,emissiveIntensity:.35}));mark.position.y=.3;rune.add(mark);runeButtons.push({group:rune,mark,index:i,active:false})}
 let templeDiscovered=false,templeRelicFound=false;
+// Extra detailed free GLB landmarks from Shuriken Studio's Jungle Temple kit.
+// The puzzle altar and rune switches stay active; the imported pyramid replaces the blocky shell.
+loadLandmark('https://shuriken.studio/models/download/30a31d28-4a02-4cb2-894b-03a30428ef11',[29,0,24],15,()=>{temple.children.forEach(o=>{if(o!==templeAltar&&!runeButtons.some(r=>r.group===o))o.visible=false});templeAltar.visible=true;runeButtons.forEach(r=>r.group.visible=true)});
+loadLandmark('https://shuriken.studio/models/download/6bf2a6bf-3919-48d6-9ab6-8ef1c7d63b6c',[29,0,15.5],9);
+loadLandmark('https://shuriken.studio/models/download/d4aeb49b-ced9-4403-8385-e7de017b2b45',[-29,0,22],15);
+loadLandmark('https://shuriken.studio/models/download/00ae3e3c-e098-4501-87ff-f751801835c7',[36,0,22],4.8);
 // Inner chamber hazards and hidden reward cache
 const templeHazard=new THREE.Group();templeHazard.position.set(29,0,24);scene.add(templeHazard);
 const hazardPlate=new THREE.Mesh(new THREE.BoxGeometry(4.2,.08,1.15),mat(0x4b4b43));hazardPlate.position.set(0,.68,-1.75);templeHazard.add(hazardPlate);
