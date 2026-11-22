@@ -295,12 +295,13 @@ let survivorsRescued=0;
 const beacon=new THREE.Group();beacon.position.set(0,0,-34);scene.add(beacon);const pillar=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,3,8),mat(0x566c67));pillar.position.y=1.5;beacon.add(pillar);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,8,12),new THREE.MeshBasicMaterial({color:0x8affc7,transparent:true,opacity:.38}));beam.position.y=5;beacon.add(beam);const beaconLight=new THREE.PointLight(0x5dffb1,0,20);beaconLight.position.y=3;beacon.add(beaconLight);
 let health=100,found=0,started=false,ended=false,lastHit=0,stamina=100,beaconPrompted=false,lowHealthWarned=false,monsterNearWarned=false;
 let dodgeUntil=0,dodgeCooldown=0,dodgeDirection=new THREE.Vector3();
-const keys={x:0,y:0};let running=false,cameraYaw=0,cameraDrag=null;
-renderer.domElement.addEventListener('pointerdown',e=>{cameraDrag={id:e.pointerId,x:e.clientX};renderer.domElement.setPointerCapture(e.pointerId)});
+const keys={x:0,y:0};let running=false,cameraYaw=0,cameraDrag=null,cameraMode='TPP';
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.clientX>innerWidth*.38){cameraDrag={id:e.pointerId,x:e.clientX};renderer.domElement.setPointerCapture(e.pointerId)}});
 renderer.domElement.addEventListener('pointermove',e=>{if(cameraDrag&&cameraDrag.id===e.pointerId){cameraYaw-=(e.clientX-cameraDrag.x)*.006;cameraDrag.x=e.clientX}});
 renderer.domElement.addEventListener('pointerup',e=>{if(cameraDrag?.id===e.pointerId)cameraDrag=null});
 renderer.domElement.addEventListener('pointercancel',()=>cameraDrag=null);
 const $=id=>document.getElementById(id);
+const cameraModeButton=$('cameraMode');cameraModeButton?.addEventListener('click',()=>{cameraMode=cameraMode==='TPP'?'FPP':'TPP';cameraModeButton.textContent=cameraMode;cameraModeButton.setAttribute('aria-label',cameraMode==='TPP'?'Switch to first person view':'Switch to third person view');camera.position.copy(player.position).add(new THREE.Vector3(0,2,6));camera.fov=cameraMode==='FPP'?76:62;camera.updateProjectionMatrix();toast(cameraMode==='FPP'?'FIRST PERSON VIEW':'THIRD PERSON VIEW');});
 let audioCtx=null,ambientOsc=null,lastFootstep=0,lastGrowl=0;
 function sound(freq=440,duration=.12,type='sine',volume=.045){try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);g.gain.setValueAtTime(volume,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
 function startAmbience(){try{audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();if(ambientOsc)return;ambientOsc=audioCtx.createOscillator();const gain=audioCtx.createGain();ambientOsc.type='sine';ambientOsc.frequency.value=58;gain.gain.value=.012;ambientOsc.connect(gain);gain.connect(audioCtx.destination);ambientOsc.start()}catch(e){}}
@@ -353,7 +354,7 @@ joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(j
 addEventListener('keydown',e=>{if(e.key==='w'||e.key==='ArrowUp')keys.y=-1;if(e.key==='s'||e.key==='ArrowDown')keys.y=1;if(e.key==='a'||e.key==='ArrowLeft')keys.x=-1;if(e.key==='d'||e.key==='ArrowRight')keys.x=1;if(e.key==='e'||e.key==='E')$('interact').click();if(e.shiftKey)running=true});addEventListener('keyup',e=>{if(['w','s','ArrowUp','ArrowDown'].includes(e.key))keys.y=0;if(['a','d','ArrowLeft','ArrowRight'].includes(e.key))keys.x=0;if(e.key==='Shift')running=false});
 const radar=$('minimap')?.getContext('2d');
 function drawRadar(){if(!radar)return;const w=radar.canvas.width,h=radar.canvas.height;radar.clearRect(0,0,w,h);radar.fillStyle='rgba(4,18,20,.78)';radar.beginPath();radar.arc(w/2,h/2,w/2-2,0,Math.PI*2);radar.fill();radar.strokeStyle='rgba(190,230,190,.5)';radar.lineWidth=1;radar.beginPath();radar.arc(w/2,h/2,w/2-4,0,Math.PI*2);radar.stroke();const dot=(x,z,color,r=3)=>{const px=w/2+(x-player.position.x)*.92,py=h/2+(z-player.position.z)*.92;if(Math.hypot(px-w/2,py-h/2)<w/2-7){radar.fillStyle=color;radar.beginPath();radar.arc(px,py,r,0,Math.PI*2);radar.fill()}};dot(0,0,'#d9ff9b',4);dot(enemy.position.x,enemy.position.z,'#ff655c',4);dot(beacon.position.x,beacon.position.z,'#69f5d0',4);for(const c of crystals)if(!c.got)dot(c.group.position.x,c.group.position.z,'#66eaff',3);for(const kit of medkits)if(!kit.used)dot(kit.group.position.x,kit.group.position.z,'#6cff9b',3)}
-const clock=new THREE.Clock();const cameraOffset=new THREE.Vector3(0,4.25,10.8);let elapsed=0;
+const clock=new THREE.Clock();const cameraOffset=new THREE.Vector3(0,3.05,6.6);let elapsed=0;const cameraRaycaster=new THREE.Raycaster();const cameraRayDirection=new THREE.Vector3();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;if(started&&!ended){saveClock+=dt;if(saveClock>=10){saveClock=0;saveGame()}}const night=(Math.sin(elapsed*.018)+1)*.5;sun.intensity=2.0+night*1.5;scene.fog.color.setHex(night>.72?0x263747:0x8daeb0);scene.background.copy(scene.fog.color);$('staminaFill').style.width=stamina+'%';if(started&&!ended&&!introCutsceneActive&&!bossCutsceneActive&&!bossVictoryActive){const len=Math.hypot(keys.x,keys.y);if(len>.05){const sprinting=running&&stamina>1;const speed=sprinting?10:6;if(sprinting)stamina=Math.max(0,stamina-25*dt);else stamina=Math.min(100,stamina+14*dt);if(elapsed-lastFootstep>(sprinting?.28:.48)){sound(sprinting?115:82,.055,'triangle',.018);lastFootstep=elapsed;}
 const move=new THREE.Vector3(keys.x/Math.max(1,len),0,keys.y/Math.max(1,len)).applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
 const dx=move.x,dz=move.z;player.position.x=THREE.MathUtils.clamp(player.position.x+dx*speed*dt,-43,43);player.position.z=THREE.MathUtils.clamp(player.position.z+dz*speed*dt,-43,43);player.rotation.y=Math.atan2(dx,dz);body.position.y=1.05+Math.sin(elapsed*12)*(running?.08:.035);if(!playerMixer){heroLimbs.forEach((part,i)=>{if(i<2)part.rotation.x=Math.sin(elapsed*(sprinting?13:9)+Math.PI)*.48;if(i>=2&&i<4)part.rotation.x=Math.sin(elapsed*(sprinting?13:9))*.48})}}else if(!playerMixer){heroLimbs.forEach(part=>{part.rotation.x=THREE.MathUtils.lerp(part.rotation.x,0,dt*8)})}if(playerMixer){const desired=len>.05?(running&&stamina>1?(playerSprint||playerWalk||playerIdle):(playerWalk||playerIdle)):playerIdle;if(desired&&desired!==playerActiveAction){desired.reset().fadeIn(.18);playerActiveAction?.fadeOut(.18);playerActiveAction=desired}playerMixer.update(dt)}if(guardianMixer){const moving=bossAwakened&&enemy.position.distanceTo(player.position)<(found>0?29:22);const clip=moving?guardianWalk:guardianIdle;if(clip&&clip!==guardianAction){const next=guardianMixer.clipAction(clip);next.reset().fadeIn(.25);guardianAction?.fadeOut(.25);guardianAction=next;guardianAction.play()}guardianMixer.update(dt)}wildlifeMixers.forEach(m=>m.update(dt));
@@ -398,8 +399,32 @@ if(!caveTrapTriggered&&!treasureFound&&player.position.distanceTo(trapGroup.posi
 beaconLight.intensity=found===3&&(!bossAwakened||bossDefeated)?3:0;if(found===3&&(!bossAwakened||bossDefeated)&&player.position.distanceTo(beacon.position)<4){beaconLight.intensity=5;if(!beaconPrompted){toast('Extraction beacon: press USE');beaconPrompted=true}}else{beaconPrompted=false}
 }
 if(extractionActive){extractionElapsed+=dt;const t=Math.min(1,extractionElapsed/6.5);helicopter.position.set(0,22-17*(t*t*(3-2*t)),-78+43*(t*t*(3-2*t)));helicopter.rotation.y=Math.PI+Math.sin(extractionElapsed*1.8)*.035;rotorHub.rotation.y+=dt*27;tailRotor.rotation.z+=dt*19;heliLamp.intensity=2.2+Math.sin(extractionElapsed*8)*.35;if(t>=1){extractionActive=false;$('endTitle').textContent='MISSION COMPLETE';$('endText').textContent='Aarav boards the rescue helicopter. The island vanishes into the storm… but a shadow moves beneath the water.';sound(980,.55,'triangle',.07)}}
-const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
-const desired=player.position.clone().add(rotatedOffset);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(player.position.x,1.28,player.position.z);
+if(cameraMode==='TPP'){
+ player.visible=true;
+ const target=player.position.clone().add(new THREE.Vector3(0,1.35,0));
+ const rotatedOffset=cameraOffset.clone().applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
+ const desired=player.position.clone().add(rotatedOffset);
+ // Keep the chase camera from passing through nearby jungle props.
+ cameraRayDirection.subVectors(desired,target);
+ const cameraDistance=cameraRayDirection.length();
+ cameraRayDirection.normalize();
+ cameraRaycaster.set(target,cameraRayDirection);
+ cameraRaycaster.far=cameraDistance;
+ const blockers=cameraRaycaster.intersectObjects(scene.children,true).filter(hit=>{
+  let node=hit.object;while(node){if(node===player)return false;node=node.parent}
+  return hit.distance>.25;
+ });
+ if(blockers.length)desired.copy(target).addScaledVector(cameraRayDirection,Math.max(2.2,blockers[0].distance-.35));
+ camera.position.lerp(desired,1-Math.pow(.00008,dt));
+ camera.lookAt(target);
+}else{
+ player.visible=false;
+ const eye=player.position.clone().add(new THREE.Vector3(0,1.68,0));
+ const forward=new THREE.Vector3(0,0,-1).applyAxisAngle(new THREE.Vector3(0,1,0),cameraYaw);
+ camera.position.lerp(eye,1-Math.pow(.00008,dt));
+ camera.lookAt(eye.clone().addScaledVector(forward,14));
+}
+
 for(const f of fireflies){f.mesh.position.y=f.y+Math.sin(elapsed*2.1+f.phase)*.22;f.mesh.position.x=f.x+Math.cos(elapsed*.7+f.phase)*.28;}drawRadar();renderer.render(scene,camera)}
 updateHud();animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.3))});
